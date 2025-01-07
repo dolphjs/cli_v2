@@ -1,0 +1,27 @@
+1. compile to .exe, .out and .app then use cross to cross-compile for multiple platforms
+2. write a ts wrapper that:
+    - detect's the user's platform
+    - downloads the precompiled binary
+    - invoke the binary when users run the CLI
+
+
+    const { execFileSync } = require('child_process');
+const path = require('path');
+const os = require('os');
+
+const platform = os.platform();
+const arch = os.arch();
+
+const binaryPath = path.join(
+  __dirname,
+  'bin',
+  `${platform}-${arch}`,
+  'your-cli-binary'
+);
+
+try {
+  execFileSync(binaryPath, process.argv.slice(2), { stdio: 'inherit' });
+} catch (err) {
+  console.error('Error running the CLI:', err);
+  process.exit(1);
+}
