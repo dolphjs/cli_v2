@@ -10,6 +10,7 @@ use crate::utils::capitalize_first_letter;
 pub enum Database {
     MySQL,
     MongoDB,
+    None,
 }
 
 impl Database {
@@ -17,6 +18,7 @@ impl Database {
         match s.to_lowercase().as_str() {
             "mysql" => Some(Database::MySQL),
             "mongo" => Some(Database::MongoDB),
+            "other" => Some(Database::None),
             _ => None,
         }
     }
@@ -28,7 +30,7 @@ struct DefaultDolphConfig {
     pub port: String,
 }
 
-fn find_base_directory() -> Option<PathBuf> {
+pub fn find_base_directory() -> Option<PathBuf> {
     let root_dir = std::env::current_dir().ok()?;
     let possible_dirs = vec!["src"];
 
@@ -45,7 +47,7 @@ pub fn write_spring_server_file(db: &str, name: &str) -> Result<(), Box<dyn Erro
     let base_directory = find_base_directory().ok_or_else(|| "Could not find base directory")?;
 
     let index_path = base_directory.join("server.ts");
-    let database = Database::from_str(db.clone()).ok_or_else(|| "Invalid database type")?;
+    let database = Database::from_str(db).ok_or_else(|| "Invalid database type")?;
 
     let capitalized_name = capitalize_first_letter(name);
 
@@ -60,6 +62,14 @@ import { sequelizeInstance } from "@/shared/configs/db.configs";
 import { autoInitMySql } from "@dolphjs/dolph/packages";"#
             .to_string(),
         (Database::MongoDB, false) => format!(
+            r#"import {{ DolphFactory }} from "@dolphjs/dolph";
+import {{ {capitalized_name}Component }} from "./components/{name}/{name}.component.ts";"#
+        ),
+        (Database::None, false) => format!(
+            r#"import {{ DolphFactory }} from "@dolphjs/dolph";
+import {{ {capitalized_name}Component }} from "./components/{name}/{name}.component.ts";"#
+        ),
+        (Database::None, true) => format!(
             r#"import {{ DolphFactory }} from "@dolphjs/dolph";
 import {{ {capitalized_name}Component }} from "./components/{name}/{name}.component.ts";"#
         ),
@@ -82,6 +92,14 @@ autoInitMySql(sequelizeInstance);
 dolph.start();"#
             .to_string(),
         (Database::MongoDB, false) => format!(
+            r#"const dolph = new DolphFactory([{capitalized_name}Component]);
+dolph.start();"#
+        ),
+        (Database::None, false) => format!(
+            r#"const dolph = new DolphFactory([{capitalized_name}Component]);
+dolph.start();"#
+        ),
+        (Database::None, true) => format!(
             r#"const dolph = new DolphFactory([{capitalized_name}Component]);
 dolph.start();"#
         ),
