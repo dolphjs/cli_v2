@@ -47,6 +47,7 @@ impl Generator {
     }
 
     pub async fn generate_service(&self, name: &str) -> Result<()> {
+        println!("Generating service: {}", name);
         write_spring_service(&self.config.database, name)?;
         println!("Generated service: {}", name);
         Ok(())
