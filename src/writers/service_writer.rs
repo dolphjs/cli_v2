@@ -54,7 +54,7 @@ export class {capitalized_name}Service extends DolphServiceHandler<Dolph>{{
 }}"#
         ),
         Database::MySQL => format!(
-            r#"@InjectMysql("{name}Model", )
+            r#"@InjectMySQL("{name}Model", )
 export class {capitalized_name}Service extends DolphServiceHandler<Dolph>{{
     private {name}Model!: ModelStatic<Model<any, any>>;
 
