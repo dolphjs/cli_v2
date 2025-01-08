@@ -2,6 +2,8 @@ use std::error::Error;
 
 use clap::Command;
 use init::{init_command, init_dolph_cli};
+use properties::{init_architecture, run_init_architecture};
+use utils::read_config;
 
 mod init;
 mod properties;
@@ -27,14 +29,24 @@ impl std::fmt::Display for ServerFileError {
 
 impl Error for ServerFileError {}
 
-fn main() -> Result<(), Box<dyn Error>> {
+#[tokio::main]
+async fn main() -> Result<(), Box<dyn Error>> {
     let matches = Command::new("dolph")
         .subcommand(init_command())
+        .subcommand(init_architecture())
         .get_matches();
 
     if let Some(matches) = matches.subcommand_matches("new") {
         let project_name = matches.value_of("PROJECT_NAME").unwrap();
         init_dolph_cli(project_name)?;
+    } else if let Some(matchess) = matches.subcommand_matches("generate") {
+        match read_config() {
+            Ok(config) => {
+                let generator = properties::Generator::new(config);
+                run_init_architecture(generator, matchess).await?;
+            }
+            Err(e) => eprintln!("Failed to read config file: {}", e),
+        }
     }
 
     Ok(())

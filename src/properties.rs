@@ -1,16 +1,19 @@
 use std::error::Error;
 
-use clap::{arg, Command};
+use clap::{arg, ArgMatches, Command};
 
 use serde::{Deserialize, Serialize};
 
+use crate::writers::{write_spring_component, write_spring_service};
+
 pub type Result<T> = std::result::Result<T, Box<dyn Error>>;
 
+#[derive(Debug, Clone)]
 pub struct Generator {
     config: DefaultConfig,
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct DefaultConfig {
     pub language: String,
     pub database: String,
@@ -41,6 +44,8 @@ impl Generator {
 
     pub async fn generate_service(&self, name: &str) -> Result<()> {
         println!("Generating service: {}", name);
+        write_spring_service(&self.config.database, name)?;
+        println!("Generated service: {}", name);
         Ok(())
     }
 
@@ -55,7 +60,8 @@ impl Generator {
     }
 
     pub async fn generate_component(&self, name: &str) -> Result<()> {
-        println!("Generating component: {}", name);
+        write_spring_component(name)?;
+        println!("Generated component: {} component", name);
         Ok(())
     }
 
@@ -116,103 +122,103 @@ impl Generator {
 }
 
 pub fn init_architecture() -> Command<'static> {
-    Command::new("dolph").about("DolphJS CLI").subcommand(
-        Command::new("generate")
-            .arg(
-                arg!(--service -s <NAME>)
-                    .help("Generates a dolphjs service file")
-                    .required(false),
-            )
-            .arg(
-                arg!(--controller -c <NAME>)
-                    .help("Generates a dolphjs controller file")
-                    .required(false),
-            )
-            .arg(
-                arg!(--route -r <NAME>)
-                    .help("Generates a dolphjs routes file")
-                    .required(false),
-            )
-            .arg(
-                arg!(--model -m <NAME>)
-                    .help("Generates a dolphjs models file")
-                    .required(false),
-            )
-            .arg(
-                arg!(--entity -e <NAME>)
-                    .help("Generates a dolphjs entity file")
-                    .required(false),
-            )
-            .arg(
-                arg!(--dto -d <NAME>)
-                    .help("Generates a dolphjs dto file")
-                    .required(false),
-            )
-            .arg(
-                arg!(--component -com <NAME>)
-                    .help("Generates a dolphjs spring component file")
-                    .required(false),
-            )
-            .arg(
-                arg!(--socket -soc <NAME>)
-                    .help("Generate a dolphjs socket service and component")
-                    .required(false),
-            )
-            .arg(
-                arg!(--all -a <NAME>)
-                    .help("Generates all dolphjs files for the named parameter")
-                    .required(false),
-            ),
-    )
+    Command::new("generate")
+        .about("DolphJS CLI")
+        .arg(
+            arg!(-s --service <NAME>)
+                .help("Generates a dolphjs service file")
+                .required(false),
+        )
+        .arg(
+            arg!(-c --controller <NAME>)
+                .help("Generates a dolphjs controller file")
+                .required(false),
+        )
+        .arg(
+            arg!(-r --route <NAME>)
+                .help("Generates a dolphjs routes file")
+                .required(false),
+        )
+        .arg(
+            arg!(-m --model <NAME>)
+                .help("Generates a dolphjs models file")
+                .required(false),
+        )
+        .arg(
+            arg!(-e --entity <NAME>)
+                .help("Generates a dolphjs entity file")
+                .required(false),
+        )
+        .arg(
+            arg!(-d --dto <NAME>)
+                .help("Generates a dolphjs dto file")
+                .required(false),
+        )
+        .arg(
+            arg!(-v --resolver <NAME>)
+                .help("Generates a dolphjs resolver file")
+                .required(false),
+        )
+        .arg(
+            arg!(-y --component <NAME>)
+                .help("Generates a dolphjs spring component file")
+                .required(false),
+        )
+        .arg(
+            arg!(-k --socket <NAME>)
+                .help("Generate a dolphjs socket service and component")
+                .required(false),
+        )
+        .arg(
+            arg!(-a --all <NAME>)
+                .help("Generates all dolphjs files for the named parameter")
+                .required(false),
+        )
 }
 
-pub async fn run_init_architecture(generator: Generator) -> Result<()> {
-    let matches = init_architecture().get_matches();
+pub async fn run_init_architecture(generator: Generator, matches: &ArgMatches) -> Result<()> {
+    if let Some(name) = matches.value_of("controller") {
+        generator.generate_controller(name).await?;
+    }
 
-    if let Some(generate_matches) = matches.subcommand_matches("generate") {
-        if let Some(name) = generate_matches.value_of("controller") {
-            generator.generate_controller(name).await?;
-        }
+    if let Some(name) = matches.value_of("service") {
+        generator.generate_service(name).await?;
+    }
 
-        if let Some(name) = generate_matches.value_of("service") {
-            generator.generate_service(name).await?;
+    if let Some(name) = matches.value_of("route") {
+        if generator.config.routing == "spring" {
+            println!("Cannot create routes file for spring routing");
+        } else {
+            generator.generate_route(name).await?;
         }
+    }
 
-        if let Some(name) = generate_matches.value_of("route") {
-            if generator.config.routing == "spring" {
-                println!("Cannot create routes file for spring routing");
-            } else {
-                generator.generate_route(name).await?;
-            }
-        }
+    if let Some(name) = matches.value_of("model") {
+        generator.generate_model(name).await?;
+    }
 
-        if let Some(name) = generate_matches.value_of("model") {
-            generator.generate_model(name).await?;
-        }
+    if let Some(name) = matches.value_of("entity") {
+        generator.generate_entity(name).await?;
+    }
 
-        if let Some(name) = generate_matches.value_of("entity") {
-            generator.generate_entity(name).await?;
-        }
+    if let Some(name) = matches.value_of("dto") {
+        generator.generate_dto(name).await?;
+    }
 
-        if let Some(name) = generate_matches.value_of("dto") {
-            generator.generate_dto(name).await?;
-        }
+    if let Some(name) = matches.value_of("resolver") {
+        generator.generate_resolver(name).await?;
+    }
 
-        if let Some(name) = generate_matches.value_of("resolver") {
-            generator.generate_resolver(name).await?;
-        }
+    if let Some(name) = matches.value_of("socket") {
+        generator.generate_socket(name).await?;
+    }
 
-        if let Some(name) = generate_matches.value_of("socket") {
-            generator.generate_socket(name).await?;
-        }
+    if let Some(name) = matches.value_of("component") {
+        generator.generate_component(name).await?;
+    }
 
-        if let Some(name) = generate_matches.value_of("component") {
-            generator.generate_component(name).await?;
-        }
-
-        if let Some(name) = generate_matches.value_of("all") {
-            generator.generate_all(name).await?;
-        }
+    if let Some(name) = matches.value_of("all") {
+        generator.generate_all(name).await?;
     }
 
     Ok(())
