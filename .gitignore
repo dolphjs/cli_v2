@@ -1,8 +1,4 @@
 /target
 /app
-<<<<<<< HEAD
 /src/components/
 /src/shared/
-=======
-/src/components/
->>>>>>> e9e02f4 (feat: add service and component generators)
