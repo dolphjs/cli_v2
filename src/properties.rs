@@ -4,7 +4,10 @@ use clap::{arg, ArgMatches, Command};
 
 use serde::{Deserialize, Serialize};
 
-use crate::writers::{write_spring_component, write_spring_service};
+use crate::writers::{
+    write_db_config, write_spring_component, write_spring_controller, write_spring_dto,
+    write_spring_model, write_spring_server_file, write_spring_service,
+};
 
 pub type Result<T> = std::result::Result<T, Box<dyn Error>>;
 
@@ -38,24 +41,28 @@ impl Generator {
     }
 
     pub async fn generate_controller(&self, name: &str) -> Result<()> {
-        println!("Generating controller: {}", name);
+        write_spring_controller(name)?;
+        println!("Generated controller: {}", name);
         Ok(())
     }
 
     pub async fn generate_service(&self, name: &str) -> Result<()> {
-        println!("Generating service: {}", name);
         write_spring_service(&self.config.database, name)?;
         println!("Generated service: {}", name);
         Ok(())
     }
 
     pub async fn generate_model(&self, name: &str) -> Result<()> {
-        println!("Generating model: {}", name);
+        if self.config.database == "mysql" {
+            write_db_config(name)?;
+        }
+        write_spring_model(&self.config.database, name)?;
+        println!("Generated model: {}", name);
         Ok(())
     }
 
     pub async fn generate_route(&self, name: &str) -> Result<()> {
-        println!("Generating route: {}", name);
+        println!("Generated route: {}", name);
         Ok(())
     }
 
@@ -66,27 +73,35 @@ impl Generator {
     }
 
     pub async fn generate_socket(&self, name: &str) -> Result<()> {
-        println!("Generating socket: {}", name);
+        println!("Generated socket: {}", name);
         Ok(())
     }
 
     pub async fn generate_resolver(&self, name: &str) -> Result<()> {
-        println!("Generating resolver: {}", name);
+        println!("Generated resolver: {}", name);
         Ok(())
     }
 
     pub async fn generate_entity(&self, name: &str) -> Result<()> {
-        println!("Generating entity: {}", name);
+        println!("Generated entity: {}", name);
         Ok(())
     }
 
     pub async fn generate_dto(&self, name: &str) -> Result<()> {
-        println!("Generating dto: {}", name);
+        write_spring_dto(name)?;
+        println!("Generated dto: {}", name);
+        Ok(())
+    }
+
+    pub async fn generate_db_config(&self, name: &str) -> Result<()> {
+        write_db_config(name);
+        println!("Generated db config: {}", name);
         Ok(())
     }
 
     pub async fn generate_server(&self, name: &str) -> Result<()> {
-        println!("Generating server: {}", name);
+        write_spring_server_file(&self.config.database, name)?;
+        println!("Generated server: {}", name);
         Ok(())
     }
 
