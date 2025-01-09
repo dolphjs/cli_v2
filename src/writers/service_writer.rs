@@ -82,3 +82,54 @@ export class {capitalized_name}Service extends DolphServiceHandler<Dolph>{{
         }
     }
 }
+
+pub fn write_graphql_service(name: &str) -> Result<(), Box<dyn Error>> {
+    let base_directory = find_base_directory().ok_or_else(|| "Could not find base directory")?;
+
+    let component_path = base_directory.join("components");
+
+    ensure_directory_exists(&component_path)?;
+
+    let name_directory = component_path.join(format!("{}", name));
+
+    ensure_directory_exists(&name_directory)?;
+
+    let service_path = name_directory.join("services");
+
+    ensure_directory_exists(&service_path)?;
+
+    let index_path = service_path.join(format!("{}.service.ts", name));
+
+    let capitalized_name = capitalize_first_letter(name);
+
+    let import_statement = format!(
+        r#"import {{ DolphServiceHandler }} from "@dolphjs/dolph/classes";
+import {{ Dolph }} from "@dolphjs/dolph/common";
+import {{ Create{capitalized_name}Input }} from "../inputs/{name}.inputs";
+"#
+    );
+
+    let other_file_content = format!(
+        r#"export class {capitalized_name}Service extends DolphServiceHandler<Dolph> {{
+// Your repository should be here
+
+    constructor() {{
+        super("{name}Service");
+        // Your repository should be initialized here
+    }}
+
+    async create{capitalized_name}(data: Create{capitalized_name}Input) {{}}
+}}
+"#
+    );
+
+    let file_content = format!("{}\n\n{}\n", import_statement, other_file_content);
+
+    match fs::write(&index_path, file_content) {
+        Ok(_) => Ok(()),
+        Err(e) => {
+            eprintln!("{}", format!("Error writing service file: {}", e));
+            Err(Box::new(e))
+        }
+    }
+}

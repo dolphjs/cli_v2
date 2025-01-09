@@ -5,8 +5,9 @@ use clap::{arg, ArgMatches, Command};
 use serde::{Deserialize, Serialize};
 
 use crate::writers::{
-    write_db_config, write_spring_component, write_spring_controller, write_spring_dto,
-    write_spring_model, write_spring_server_file, write_spring_service,
+    write_db_config, write_entity, write_graphql_service, write_input, write_resolver,
+    write_spring_component, write_spring_controller, write_spring_dto, write_spring_model,
+    write_spring_server_file, write_spring_service,
 };
 
 pub type Result<T> = std::result::Result<T, Box<dyn Error>>;
@@ -47,14 +48,19 @@ impl Generator {
     }
 
     pub async fn generate_service(&self, name: &str) -> Result<()> {
-        write_spring_service(&self.config.database, name)?;
+        if self.config.api == "graphql" {
+            write_graphql_service(name)?;
+        } else {
+            write_spring_service(&self.config.database, name)?;
+        }
+
         println!("Generated service: {}", name);
         Ok(())
     }
 
     pub async fn generate_model(&self, name: &str) -> Result<()> {
         if self.config.database == "mysql" {
-            write_db_config(name)?;
+            self.generate_db_config(name).await?;
         }
         write_spring_model(&self.config.database, name)?;
         println!("Generated model: {}", name);
@@ -78,11 +84,19 @@ impl Generator {
     }
 
     pub async fn generate_resolver(&self, name: &str) -> Result<()> {
+        write_resolver(name)?;
         println!("Generated resolver: {}", name);
         Ok(())
     }
 
+    pub async fn generate_input(&self, name: &str) -> Result<()> {
+        write_input(name)?;
+        println!("Generated input: {}", name);
+        Ok(())
+    }
+
     pub async fn generate_entity(&self, name: &str) -> Result<()> {
+        write_entity(name)?;
         println!("Generated entity: {}", name);
         Ok(())
     }
@@ -94,7 +108,7 @@ impl Generator {
     }
 
     pub async fn generate_db_config(&self, name: &str) -> Result<()> {
-        write_db_config(name);
+        write_db_config(name)?;
         println!("Generated db config: {}", name);
         Ok(())
     }
@@ -106,30 +120,31 @@ impl Generator {
     }
 
     pub async fn generate_all(&self, name: &str) -> Result<()> {
-        self.generate_dto(name).await?;
         self.generate_service(name).await?;
 
         if self.config.api.to_string() == String::from("rest") {
+            self.generate_dto(name).await?;
             self.generate_controller(name).await?;
             self.generate_model(name).await?;
+
+            match self.config.routing.as_str() {
+                "express" => {
+                    self.generate_route(name).await?;
+                    // Add route to index file
+                    // Add server file
+                }
+                "spring" => {
+                    self.generate_component(name).await?;
+                    // Add controller to component file
+                    // Add component to server file
+                    // Add server file
+                }
+                _ => println!("Unknown routing type"),
+            }
         } else if self.config.api.to_string() == String::from("graphql") {
             self.generate_entity(name).await?;
             self.generate_resolver(name).await?;
-        }
-
-        match self.config.routing.as_str() {
-            "express" => {
-                self.generate_route(name).await?;
-                // Add route to index file
-                // Add server file
-            }
-            "spring" => {
-                self.generate_component(name).await?;
-                // Add controller to component file
-                // Add component to server file
-                // Add server file
-            }
-            _ => println!("Unknown routing type"),
+            self.generate_input(name).await?;
         }
 
         Ok(())
@@ -162,6 +177,11 @@ pub fn init_architecture() -> Command<'static> {
         .arg(
             arg!(-e --entity <NAME>)
                 .help("Generates a dolphjs entity file")
+                .required(false),
+        )
+        .arg(
+            arg!(-i --input <NAME>)
+                .help("Generates a dolphjs input file")
                 .required(false),
         )
         .arg(
@@ -218,6 +238,10 @@ pub async fn run_init_architecture(generator: Generator, matches: &ArgMatches) -
 
     if let Some(name) = matches.value_of("dto") {
         generator.generate_dto(name).await?;
+    }
+
+    if let Some(name) = matches.value_of("input") {
+        generator.generate_input(name).await?;
     }
 
     if let Some(name) = matches.value_of("resolver") {

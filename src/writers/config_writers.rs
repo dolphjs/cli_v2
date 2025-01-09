@@ -58,7 +58,7 @@ pub fn write_spring_server_file(db: &str, name: &str) -> Result<(), Box<dyn Erro
 import {{ {capitalized_name}Component }} from "./components/{name}/{name}.component.ts";"#
         ),
         (Database::MySQL, true) => r#"import { DolphFactory } from "@dolphjs/dolph";
-import { sequelizeInstance } from "@/shared/configs/db.configs";
+import { sequelizeInstance } from "@/shared/configs/db.config";
 import { autoInitMySql } from "@dolphjs/dolph/packages";"#
             .to_string(),
         (Database::MongoDB, false) => format!(
