@@ -36,6 +36,10 @@ import {{ InjectMongo }} from "@dolphjs/dolph/decorators";
 import {{ Model }} from "mongoose";
 import {{ {capitalized_name}Model, I{capitalized_name} }} from "./{name}.model"; "#
         ),
+        Database::PostgreSQL => format!(
+            r#"import {{ DolphServiceHandler }} from "@dolphjs/dolph/classes";
+import {{ Dolph }} from "@dolphjs/dolph/common";"#
+        ),
         Database::None => format!(
             r#"import {{ DolphServiceHandler }} from "@dolphjs/dolph/classes";
 import {{ Dolph }} from "@dolphjs/dolph/common";"#
@@ -58,6 +62,13 @@ export class {capitalized_name}Service extends DolphServiceHandler<Dolph>{{
 export class {capitalized_name}Service extends DolphServiceHandler<Dolph>{{
     private {name}Model!: ModelStatic<Model<any, any>>;
 
+    constructor() {{
+        super("{name}Service");
+    }}
+}}"#
+        ),
+        Database::PostgreSQL => format!(
+            r#"export class {capitalized_name}Service extends DolphServiceHandler<Dolph>{{
     constructor() {{
         super("{name}Service");
     }}

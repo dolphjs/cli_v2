@@ -10,6 +10,7 @@ use crate::utils::capitalize_first_letter;
 pub enum Database {
     MySQL,
     MongoDB,
+    PostgreSQL,
     None,
 }
 
@@ -18,7 +19,8 @@ impl Database {
         match s.to_lowercase().as_str() {
             "mysql" => Some(Database::MySQL),
             "mongo" => Some(Database::MongoDB),
-            "other" => Some(Database::None),
+            "other" => Some(Database::PostgreSQL),
+            "postgresql" => Some(Database::None),
             _ => None,
         }
     }
@@ -73,6 +75,14 @@ import {{ {capitalized_name}Component }} from "./components/{name}/{name}.compon
             r#"import {{ DolphFactory }} from "@dolphjs/dolph";
 import {{ {capitalized_name}Component }} from "./components/{name}/{name}.component.ts";"#
         ),
+        (Database::PostgreSQL, false) => format!(
+            r#"import {{ DolphFactory }} from "@dolphjs/dolph";
+import {{ {capitalized_name}Component }} from "./components/{name}/{name}.component.ts";"#
+        ),
+        (Database::PostgreSQL, true) => format!(
+            r#"import {{ DolphFactory }} from "@dolphjs/dolph";
+import {{ {capitalized_name}Component }} from "./components/{name}/{name}.component.ts";"#
+        ),
         (Database::MongoDB, true) => {
             r#"import { DolphFactory } from "@dolphjs/dolph";"#.to_string()
         }
@@ -100,6 +110,14 @@ dolph.start();"#
 dolph.start();"#
         ),
         (Database::None, true) => format!(
+            r#"const dolph = new DolphFactory([{capitalized_name}Component]);
+dolph.start();"#
+        ),
+        (Database::PostgreSQL, false) => format!(
+            r#"const dolph = new DolphFactory([{capitalized_name}Component]);
+dolph.start();"#
+        ),
+        (Database::PostgreSQL, true) => format!(
             r#"const dolph = new DolphFactory([{capitalized_name}Component]);
 dolph.start();"#
         ),

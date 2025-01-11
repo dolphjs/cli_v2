@@ -27,6 +27,7 @@ pub fn write_spring_model(db: &str, name: &str) -> Result<(), Box<dyn Error>> {
 import {{ DataTypes }} from "sequelize";"#
         ),
         Database::MongoDB => format!(r#"import {{ Schema, Document, model }} from "mongoose";"#),
+        Database::PostgreSQL => r#""#.to_string(),
         Database::None => r#""#.to_string(),
     };
 
@@ -52,6 +53,7 @@ import {{ DataTypes }} from "sequelize";"#
 export const {capitalized_name}Model = model<I{capitalized_name}>("{name}", {capitalized_name}Schema);
  "#
         ),
+        Database::PostgreSQL => r#""#.to_string(),
         Database::None => r#""#.to_string(),
     };
 

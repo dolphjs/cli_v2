@@ -8,8 +8,8 @@ use std::process;
 
 use crate::properties::DefaultConfig;
 use crate::writers::{
-    write_dolph_config, write_gitignore, write_package_json, write_spring_server_file, write_swcrc,
-    write_tsconfig,
+    write_datasource_config, write_dolph_config, write_gitignore, write_graphql_server_file,
+    write_package_json, write_setup_file, write_spring_server_file, write_swcrc, write_tsconfig,
 };
 
 pub fn init_command() -> Command<'static> {
@@ -106,7 +106,14 @@ pub fn init_dolph_cli(app_name: &str) -> Result<(), Box<dyn Error>> {
         if config.routing == "spring" {
             fs::create_dir_all(&component_path)?;
             fs::create_dir_all(&shared_path)?;
-            write_spring_server_file(&config.database, &String::from(""))?;
+
+            if config.api == "graphql" {
+                write_datasource_config(&mut config.database)?;
+                write_setup_file()?;
+                write_graphql_server_file()?;
+            } else {
+                write_spring_server_file(&config.database, &String::from(""))?;
+            }
         }
 
         if config.language == "ts" {
