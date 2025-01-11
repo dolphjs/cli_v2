@@ -92,7 +92,7 @@ pub fn watcher(env: &str, port: &str, language: &str) {
             ignore_patterns: vec![
                 String::from("**/node_modules/**"),
                 String::from("**/.git/**"),
-                String::from("**/app/**"),
+                // String::from("**/app/**"),
                 String::from("**/.#*"),
                 String::from("**/*~"),
                 String::from("**/*.swp"),
@@ -152,11 +152,9 @@ pub fn watcher(env: &str, port: &str, language: &str) {
                         if now.duration_since(*last).as_millis()
                             > config_clone.watch.debounce_ms as u128
                         {
-                            slog::info!(
-                                logger,
-                                "Change detected in {:?}, restarting server...",
-                                event.paths[0]
-                            );
+                            slog::info!(logger, "Change detected in {:?}", event.paths[0]);
+
+                            slog::info!(logger, "Restarting server...");
 
                             thread::sleep(Duration::from_millis(100));
                             server.start(&config_clone.command);
