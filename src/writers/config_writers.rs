@@ -298,12 +298,16 @@ pub fn write_dolph_config() -> Result<(), Box<dyn Error>> {
     Ok(())
 }
 
-pub fn write_package_json(project_name: &str, language: &str) -> Result<(), Box<dyn Error>> {
+pub fn write_package_json(
+    project_name: &str,
+    language: &str,
+    api: &str,
+) -> Result<(), Box<dyn Error>> {
     // Implementation for writing package.json
     let root_dir = get_root_directory()?;
     let file_path = root_dir.join("package.json");
 
-    let config = if language.to_string() == "ts" {
+    let config = if language.to_string() == "ts" && api.to_string() == "spring" {
         json!({
           "name": project_name.to_string(),
           "version": "1.0.0",
@@ -324,6 +328,43 @@ pub fn write_package_json(project_name: &str, language: &str) -> Result<(), Box<
           },
           "dependencies": {
             "@dolphjs/dolph": "^2.0.1"
+          },
+          "devDependencies": {
+            "@swc/cli": "^0.1.62",
+            "@swc/core": "^1.3.91",
+             "@types/express": "^4.17.21",
+            "@types/node": "^20.8.2",
+            "ts-node": "^10.9.1",
+            "tsc-alias": "^1.8.8",
+            "tsconfig-paths": "^4.2.0",
+            "typescript": "^5.2.2"
+          }
+        })
+    } else if api.to_string() == "graphql" {
+        json!({
+         "name": project_name.to_string(),
+          "version": "1.0.0",
+          "main": "app/server.js",
+          "author": "",
+          "license": "MIT",
+          "engines": {
+            "node": ">=18.0.0"
+          },
+          "scripts": {
+            "dev:start": "dolph watch",
+            "dev:docker:start": "docker-compose -f docker-compose-dev.yml up",
+            "dev:docker:stop": "docker-compose -f docker-compose-dev.yml down",
+            "build": "dolph build",
+            "build:tsc": "tsc && tsc-alias",
+            "start": "dolph start",
+            "clean": "rm -r app && rm -r logs"
+          },
+          "dependencies": {
+            "@dolphjs/dolph": "^2.0.1",
+            "@dolphjs/graphql": "^0.2.0",
+            "graphql-scalars": "^1.23.0",
+            "type-graphql": "^2.0.0-rc.2",
+            "typeorm": "^0.3.20"
           },
           "devDependencies": {
             "@swc/cli": "^0.1.62",
@@ -368,7 +409,7 @@ pub fn write_package_json(project_name: &str, language: &str) -> Result<(), Box<
 pub fn write_gitignore() -> Result<(), Box<dyn Error>> {
     // Implementation for writing .gitignore
     let root_dir = get_root_directory()?;
-    let file_path = root_dir.join("package.json");
+    let file_path = root_dir.join(".gitignore");
 
     let config = r#"node_modules
 .env

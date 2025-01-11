@@ -122,7 +122,7 @@ pub fn init_dolph_cli(app_name: &str) -> Result<(), Box<dyn Error>> {
         }
 
         write_dolph_config()?;
-        write_package_json(&project_name, &config.language)?;
+        write_package_json(&project_name, &config.language, &config.api)?;
         write_gitignore()?;
 
         println!("dolph configurations have been initialized successfully. ✨");
