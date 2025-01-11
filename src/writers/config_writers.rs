@@ -55,30 +55,22 @@ pub fn write_spring_server_file(db: &str, name: &str) -> Result<(), Box<dyn Erro
 
     // Generate import statement
     let import_statement = match (database.clone(), name.is_empty()) {
-        (Database::MySQL, false) => format!(
-            r#"import {{ DolphFactory }} from "@dolphjs/dolph";
-import {{ {capitalized_name}Component }} from "./components/{name}/{name}.component.ts";"#
-        ),
+        (Database::MySQL, false) => format!(r#"import {{ DolphFactory }} from "@dolphjs/dolph";"#),
         (Database::MySQL, true) => r#"import { DolphFactory } from "@dolphjs/dolph";
 import { sequelizeInstance } from "@/shared/configs/db.config";
 import { autoInitMySql } from "@dolphjs/dolph/packages";"#
             .to_string(),
-        (Database::MongoDB, false) => format!(
-            r#"import {{ DolphFactory }} from "@dolphjs/dolph";
-import {{ {capitalized_name}Component }} from "./components/{name}/{name}.component.ts";"#
-        ),
-        (Database::None, false) => format!(
-            r#"import {{ DolphFactory }} from "@dolphjs/dolph";
-import {{ {capitalized_name}Component }} from "./components/{name}/{name}.component.ts";"#
-        ),
+        (Database::MongoDB, false) => {
+            format!(r#"import {{ DolphFactory }} from "@dolphjs/dolph";"#)
+        }
+        (Database::None, false) => format!(r#"import {{ DolphFactory }} from "@dolphjs/dolph";"#),
         (Database::None, true) => format!(
             r#"import {{ DolphFactory }} from "@dolphjs/dolph";
 import {{ {capitalized_name}Component }} from "./components/{name}/{name}.component.ts";"#
         ),
-        (Database::PostgreSQL, false) => format!(
-            r#"import {{ DolphFactory }} from "@dolphjs/dolph";
-import {{ {capitalized_name}Component }} from "./components/{name}/{name}.component.ts";"#
-        ),
+        (Database::PostgreSQL, false) => {
+            format!(r#"import {{ DolphFactory }} from "@dolphjs/dolph";"#)
+        }
         (Database::PostgreSQL, true) => format!(
             r#"import {{ DolphFactory }} from "@dolphjs/dolph";
 import {{ {capitalized_name}Component }} from "./components/{name}/{name}.component.ts";"#
@@ -307,7 +299,7 @@ pub fn write_package_json(
     let root_dir = get_root_directory()?;
     let file_path = root_dir.join("package.json");
 
-    let config = if language.to_string() == "ts" && api.to_string() == "spring" {
+    let config = if language.to_string() == "ts" && api.to_string() == "rest" {
         json!({
           "name": project_name.to_string(),
           "version": "1.0.0",

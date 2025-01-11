@@ -1,10 +1,12 @@
 use std::error::Error;
 
 use clap::Command;
+use daemon::{init_watch_command, watch_command};
 use init::{init_command, init_dolph_cli};
 use properties::{init_architecture, run_init_architecture};
 use utils::read_config;
 
+mod daemon;
 mod init;
 mod properties;
 mod utils;
@@ -34,6 +36,7 @@ async fn main() -> Result<(), Box<dyn Error>> {
     let matches = Command::new("dolph")
         .subcommand(init_command())
         .subcommand(init_architecture())
+        .subcommand(watch_command())
         .get_matches();
 
     if let Some(matches) = matches.subcommand_matches("new") {
@@ -44,6 +47,13 @@ async fn main() -> Result<(), Box<dyn Error>> {
             Ok(config) => {
                 let generator = properties::Generator::new(config);
                 run_init_architecture(generator, matchess).await?;
+            }
+            Err(e) => eprintln!("Failed to read config file: {}", e),
+        }
+    } else if let Some(matchess) = matches.subcommand_matches("watch") {
+        match read_config() {
+            Ok(config) => {
+                init_watch_command(&config.language, matchess);
             }
             Err(e) => eprintln!("Failed to read config file: {}", e),
         }
