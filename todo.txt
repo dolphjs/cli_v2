@@ -1,5 +1,6 @@
 1. compile to .exe, .out and .app then use cross to cross-compile for multiple platforms
-2. write a ts wrapper that:
+2. let go of ts-node for running watch instead build with swc since it is fast to compile then start each time
+3. write a ts wrapper that:
     - detect's the user's platform
     - downloads the precompiled binary
     - invoke the binary when users run the CLI

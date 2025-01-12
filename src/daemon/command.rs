@@ -9,3 +9,7 @@ pub fn init_watch_command(language: &str, matches: &ArgMatches) -> () {
 pub fn watch_command() -> Command<'static> {
     Command::new("watch").about("Watch dolph.js server")
 }
+
+pub fn build_command() -> Command<'static> {
+    Command::new("build").about("Build dolph.js ts project to js project for production")
+}

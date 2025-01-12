@@ -1,7 +1,7 @@
 use std::error::Error;
 
 use clap::Command;
-use daemon::{init_watch_command, watch_command};
+use daemon::{build_command, build_ts_app, init_watch_command, watch_command};
 use init::{init_command, init_dolph_cli};
 use properties::{init_architecture, run_init_architecture};
 use utils::read_config;
@@ -37,6 +37,7 @@ async fn main() -> Result<(), Box<dyn Error>> {
         .subcommand(init_command())
         .subcommand(init_architecture())
         .subcommand(watch_command())
+        .subcommand(build_command())
         .get_matches();
 
     if let Some(matches) = matches.subcommand_matches("new") {
@@ -54,6 +55,13 @@ async fn main() -> Result<(), Box<dyn Error>> {
         match read_config() {
             Ok(config) => {
                 init_watch_command(&config.language, matchess);
+            }
+            Err(e) => eprintln!("Failed to read config file: {}", e),
+        }
+    } else if let Some(matchess) = matches.subcommand_matches("build") {
+        match read_config() {
+            Ok(config) => {
+                let _ = build_ts_app(&config.language).await;
             }
             Err(e) => eprintln!("Failed to read config file: {}", e),
         }
