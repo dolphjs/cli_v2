@@ -5,9 +5,7 @@ use clap::{arg, ArgMatches, Command};
 use serde::{Deserialize, Serialize};
 
 use crate::writers::{
-    write_db_config, write_entity, write_graphql_service, write_input, write_resolver,
-    write_spring_component, write_spring_controller, write_spring_dto, write_spring_model,
-    write_spring_server_file, write_spring_service,
+    write_db_config, write_entity, write_graphql_service, write_input, write_resolver, write_socket_service, write_spring_component, write_spring_controller, write_spring_dto, write_spring_model, write_spring_server_file, write_spring_service
 };
 
 pub type Result<T> = std::result::Result<T, Box<dyn Error>>;
@@ -79,6 +77,7 @@ impl Generator {
     }
 
     pub async fn generate_socket(&self, name: &str) -> Result<()> {
+        write_socket_service(name)?;
         println!("Generated socket: {}", name);
         Ok(())
     }

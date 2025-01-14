@@ -11,6 +11,8 @@ mod model_writer;
 mod resolver_writer;
 mod service_writer;
 mod setup_writer;
+mod socket_writer;
+mod socket_component_writer;
 
 pub use config_writers::{
     write_dolph_config, write_gitignore, write_package_json, write_spring_server_file, write_swcrc,
@@ -29,3 +31,4 @@ pub use model_writer::write_spring_model;
 pub use resolver_writer::write_resolver;
 pub use service_writer::{write_graphql_service, write_spring_service};
 pub use setup_writer::write_setup_file;
+pub use socket_writer::write_socket_service;
