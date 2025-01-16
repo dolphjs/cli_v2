@@ -3,6 +3,15 @@ name = "cli_rust"
 version = "0.1.0"
 edition = "2021"
 
+[target.'cfg(target_os = "windows")'.dependencies]
+# Windows-specific dependencies
+
+[target.'cfg(target_os = "linux")'.dependencies]
+# Linux-specific dependencies
+
+[target.'cfg(target_os = "macos")'.dependencies]
+# macOS-specific dependencies
+
 [dependencies]
 serde = { version = "1.0.217", features = ["derive"] }
 clap = { version = "3.0",  features = ["derive"] }
@@ -16,6 +25,7 @@ slog = "2.7"
 slog-term = "2.9"
 slog-async = "2.7"
 glob = "0.3"
+ctrlc = "3.4.5"
 
 [[bin]]
 name = "dolph"

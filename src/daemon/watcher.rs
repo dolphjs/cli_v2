@@ -12,7 +12,9 @@ use std::{
 use notify::{
     Config as NotifyConfig, Event, EventKind, RecommendedWatcher, RecursiveMode, Watcher,
 };
+#[cfg(unix)]
 use signal_hook::{consts::SIGINT, iterator::Signals};
+
 use slog::{o, Drain, Logger};
 
 use crate::daemon::configs::{CommandConfig, Config, ServerProcess, WatchConfig};
@@ -32,14 +34,6 @@ fn should_ignore(path: &Path, ignore_patterns: &[String]) -> bool {
             .unwrap_or(false)
     })
 }
-
-// fn build_app(language: &str) {
-//     if language.to_string() == "ts" {
-
-//         let base_directory =
-
-//     }
-// }
 
 fn should_restart_for_event(event: &Event, config: &WatchConfig) -> bool {
     match event.kind {
@@ -104,20 +98,34 @@ pub fn watcher(env: &str, port: &str, language: &str) {
     };
 
     let running = Arc::new(AtomicBool::new(true));
-    let r = running.clone();
     let config = Arc::new(config);
     let last_restart = Arc::new(Mutex::new(std::time::Instant::now()));
+    let logger_clone = logger.clone();
+    let running_clone = running.clone();
 
-    let logger_signals = logger.clone();
-    let mut signals = Signals::new(&[SIGINT]).unwrap();
+    // Setting up ctrl+c handler for windows
+    if cfg!(windows) {
+        ctrlc::set_handler(move || {
+            slog::info!(logger_clone, "Received Ctrl+c signal");
+            running_clone.store(false, Ordering::SeqCst);
+        })
+        .expect("Error setting Ctrl+c handler")
+    }
 
-    thread::spawn(move || {
-        for sig in signals.forever() {
-            slog::info!(logger_signals, "Received signal: {}", sig);
-            r.store(false, Ordering::SeqCst);
-            break;
-        }
-    });
+    #[cfg(unix)]
+    {
+        let running_clone = running.clone();
+        let logger_signals = logger.clone();
+        let mut signals = Signals::new(&[SIGINT]).unwrap();
+
+        thread::spawn(move || {
+            for sig in signals.forever() {
+                slog::info!(logger_signals, "Received signal: {}", sig);
+                running_clone.store(false, Ordering::SeqCst);
+                break;
+            }
+        });
+    }
 
     // Create server process manager
     let mut server = ServerProcess::new(logger.clone());
