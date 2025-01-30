@@ -19,7 +19,7 @@ use slog::{o, Drain, Logger};
 
 use crate::daemon::configs::{CommandConfig, Config, ServerProcess, WatchConfig};
 
-fn setup_logger() -> Logger {
+pub fn setup_logger() -> Logger {
     let decorator = slog_term::TermDecorator::new().build();
     let drain = slog_term::FullFormat::new(decorator).build().fuse();
     let drain = slog_async::Async::new(drain).build().fuse();
@@ -58,7 +58,7 @@ fn should_restart_for_event(event: &Event, config: &WatchConfig) -> bool {
     false
 }
 
-pub fn watcher(env: &str, port: &str, language: &str) {
+pub fn watcher(env: &str, port: &str, language: &str, bun: bool) {
     let logger = setup_logger();
     slog::info!(logger, "Starting dolph server daemon");
 
@@ -70,10 +70,17 @@ pub fn watcher(env: &str, port: &str, language: &str) {
         server_path = "./src/server.ts";
     };
 
+    let mut args = vec![String::from(server_path)];
+
+    if bun {
+        bin = "bun";
+        args = vec![String::from("run"), String::from(server_path)]
+    }
+
     let config = Config {
         command: CommandConfig {
             program: String::from(bin),
-            args: vec![String::from(server_path)],
+            args: args,
             cwd: Some(PathBuf::from(".")),
             env: vec![
                 ("NODE_ENV".to_string(), env.to_string()),

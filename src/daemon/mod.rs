@@ -1,4 +1,5 @@
 mod builder;
+mod bun;
 mod command;
 mod configs;
 mod watcher;

@@ -1,13 +1,25 @@
-use clap::{ArgMatches, Command};
+use clap::{arg, ArgMatches, Command};
 
 use super::watcher;
 
 pub fn init_watch_command(language: &str, matches: &ArgMatches) -> () {
-    watcher("development", "8080", language);
+    if matches.is_present("bun") {
+        println!("Using Bun ...");
+        println!("Checking if system has bun installed ...");
+        watcher("development", "8080", language, true);
+    } else {
+        println!("Using Node ...");
+        println!("Checking if system has node.js installed ...");
+        watcher("development", "8080", language, false);
+    }
 }
 
 pub fn watch_command() -> Command<'static> {
-    Command::new("watch").about("Watch dolph.js server")
+    Command::new("watch").about("Watch dolph.js server").arg(
+        arg!(-b - -bun)
+            .help("Uses bun as runtime to run the Dolph app")
+            .required(false),
+    )
 }
 
 pub fn build_command() -> Command<'static> {
