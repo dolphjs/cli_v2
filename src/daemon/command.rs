@@ -1,16 +1,32 @@
 use clap::{arg, ArgMatches, Command};
 
+use crate::utils::is_bin_installed;
+
 use super::watcher;
 
 pub fn init_watch_command(language: &str, matches: &ArgMatches) -> () {
-    if matches.is_present("bun") {
-        println!("Using Bun ...");
-        println!("Checking if system has bun installed ...");
-        watcher("development", "8080", language, true);
+    let use_bun = matches.is_present("bun");
+
+    if use_bun {
+        println!("Using Bun...");
+        println!("Checking if system has bun installed...");
+        if is_bin_installed("bun") {
+            println!("Bun is installed. Using Bun...");
+            watcher("development", "8080", language, true);
+        } else {
+            println!("Bun is not installed. Falling back to Node.js...");
+            watcher("development", "8080", language, false);
+        }
     } else {
-        println!("Using Node ...");
-        println!("Checking if system has node.js installed ...");
-        watcher("development", "8080", language, false);
+        println!("Using Node...");
+        println!("Checking if system has node.js installed...");
+
+        if is_bin_installed("node") {
+            println!("Node is installed. Using Node...");
+            watcher("development", "8080", language, false);
+        } else {
+            println!("Node is not installed. Quitting...")
+        }
     }
 }
 
