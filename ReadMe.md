@@ -15,3 +15,9 @@ Current on development, to run this cli follow the steps below:
 6. `cargo run --bin dolph build` to compile the app to javascript for production
 
 7. `cargo run --bin dolph watch --bun` to start the server in watch mode using the  bun runtime.
+
+8. `cargo run --bin dolph start` to start the server in production with node.
+
+9. `cargo run --bin dolph start --bun` to start the server in production with bun.
+
+
