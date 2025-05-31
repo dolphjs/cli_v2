@@ -246,6 +246,7 @@ pub fn write_tsconfig(is_spring: bool) -> Result<(), Box<dyn Error>> {
         "allowJs": false,
         "declaration": false,
         "experimentalDecorators": true,
+        "emitDecoratorMetadata": true,
         "sourceMap": false,
         "useUnknownInCatchVariables": false,
         "strictFunctionTypes": false,
