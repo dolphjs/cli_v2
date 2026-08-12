@@ -25,30 +25,42 @@ pub fn write_spring_service(db: &str, name: &str) -> Result<(), Box<dyn Error>> 
         Database::MySQL => format!(
             r#"import {{ DolphServiceHandler }} from "@dolphjs/dolph/classes";
 import {{ Dolph }} from "@dolphjs/dolph/common";
-import {{ InjectMySQL }} from "@dolphjs/dolph/decorators";
+import {{ InjectMySQL, DService }} from "@dolphjs/dolph/decorators";
 import {{ ModelStatic, Model }} from "sequelize";
 import {{ {name}Model }} from "./{name}.model"; "#
         ),
         Database::MongoDB => format!(
             r#"import {{ DolphServiceHandler }} from "@dolphjs/dolph/classes";
 import {{ Dolph }} from "@dolphjs/dolph/common";
-import {{ InjectMongo }} from "@dolphjs/dolph/decorators";
+import {{ InjectMongo, DService }} from "@dolphjs/dolph/decorators";
 import {{ Model }} from "mongoose";
 import {{ {capitalized_name}Model, I{capitalized_name} }} from "./{name}.model"; "#
         ),
         Database::PostgreSQL => format!(
             r#"import {{ DolphServiceHandler }} from "@dolphjs/dolph/classes";
-import {{ Dolph }} from "@dolphjs/dolph/common";"#
+import {{ Dolph }} from "@dolphjs/dolph/common";
+import {{ DService }} from "@dolphjs/dolph/decorators";"#
         ),
         Database::None => format!(
             r#"import {{ DolphServiceHandler }} from "@dolphjs/dolph/classes";
-import {{ Dolph }} from "@dolphjs/dolph/common";"#
+import {{ Dolph }} from "@dolphjs/dolph/common";
+import {{ DService }} from "@dolphjs/dolph/decorators";"#
         ),
     };
 
+    // @DService() carries no runtime meaning for @Component's own DI
+    // resolution — it's a re-exported typedi decorator — but TypeScript's
+    // emitDecoratorMetadata only emits `design:paramtypes` reflection
+    // metadata for a class that has *some* decorator applied to it. Without
+    // one, a service that later grows a constructor-injected dependency on
+    // another service resolves that dependency to `undefined` silently
+    // (JS doesn't enforce constructor arg count), instead of throwing.
+    // Applying it here unconditionally avoids that footgun regardless of
+    // whether this particular service takes a dependency today.
     let other_file_content = match database.clone() {
         Database::MongoDB => format!(
             r#"@InjectMongo("{name}Model", {capitalized_name}Model)
+@DService()
 export class {capitalized_name}Service extends DolphServiceHandler<Dolph>{{
     private {name}Model!: Model<I{capitalized_name}>;
 
@@ -58,7 +70,8 @@ export class {capitalized_name}Service extends DolphServiceHandler<Dolph>{{
 }}"#
         ),
         Database::MySQL => format!(
-            r#"@InjectMySQL("{name}Model", )
+            r#"@InjectMySQL("{name}Model", {name}Model)
+@DService()
 export class {capitalized_name}Service extends DolphServiceHandler<Dolph>{{
     private {name}Model!: ModelStatic<Model<any, any>>;
 
@@ -68,14 +81,16 @@ export class {capitalized_name}Service extends DolphServiceHandler<Dolph>{{
 }}"#
         ),
         Database::PostgreSQL => format!(
-            r#"export class {capitalized_name}Service extends DolphServiceHandler<Dolph>{{
+            r#"@DService()
+export class {capitalized_name}Service extends DolphServiceHandler<Dolph>{{
     constructor() {{
         super("{name}Service");
     }}
 }}"#
         ),
         Database::None => format!(
-            r#"export class {capitalized_name}Service extends DolphServiceHandler<Dolph>{{
+            r#"@DService()
+export class {capitalized_name}Service extends DolphServiceHandler<Dolph>{{
     constructor() {{
         super("{name}Service");
     }}
@@ -116,12 +131,14 @@ pub fn write_graphql_service(name: &str) -> Result<(), Box<dyn Error>> {
     let import_statement = format!(
         r#"import {{ DolphServiceHandler }} from "@dolphjs/dolph/classes";
 import {{ Dolph }} from "@dolphjs/dolph/common";
+import {{ DService }} from "@dolphjs/dolph/decorators";
 import {{ Create{capitalized_name}Input }} from "../inputs/{name}.inputs";
 "#
     );
 
     let other_file_content = format!(
-        r#"export class {capitalized_name}Service extends DolphServiceHandler<Dolph> {{
+        r#"@DService()
+export class {capitalized_name}Service extends DolphServiceHandler<Dolph> {{
 // Your repository should be here
 
     constructor() {{
