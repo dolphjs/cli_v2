@@ -9,7 +9,8 @@ use std::process;
 use crate::properties::DefaultConfig;
 use crate::writers::{
     write_datasource_config, write_dolph_config, write_gitignore, write_graphql_server_file,
-    write_package_json, write_setup_file, write_spring_server_file, write_swcrc, write_tsconfig,
+    write_jest_config, write_package_json, write_setup_file, write_spring_server_file,
+    write_swcrc, write_tsconfig,
 };
 
 pub fn init_command() -> Command<'static> {
@@ -123,6 +124,7 @@ pub fn init_dolph_cli(app_name: &str) -> Result<(), Box<dyn Error>> {
 
         write_dolph_config()?;
         write_package_json(&project_name, &config.language, &config.api)?;
+        write_jest_config(&config.language, &config.api)?;
         write_gitignore()?;
 
         println!("dolph configurations have been initialized successfully. ✨");

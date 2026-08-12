@@ -317,16 +317,23 @@ pub fn write_package_json(
             "build": "dolph build",
             "build:tsc": "tsc && tsc-alias",
             "start": "dolph start",
+            "test": "jest",
             "clean": "rm -r app && rm -r logs"
           },
           "dependencies": {
             "@dolphjs/dolph": "^2.0.1"
           },
           "devDependencies": {
+            "@dolphjs/testing": "^0.1.0",
             "@swc/cli": "^0.1.62",
             "@swc/core": "^1.3.91",
              "@types/express": "^4.17.21",
+            "@types/jest": "^29.5.12",
             "@types/node": "^20.8.2",
+            "@types/supertest": "^6.0.2",
+            "jest": "^29.7.0",
+            "supertest": "^7.0.0",
+            "ts-jest": "^29.2.3",
             "ts-node": "^10.9.1",
             "tsc-alias": "^1.8.8",
             "tsconfig-paths": "^4.2.0",
@@ -350,6 +357,7 @@ pub fn write_package_json(
             "build": "dolph build",
             "build:tsc": "tsc && tsc-alias",
             "start": "dolph start",
+            "test": "jest",
             "clean": "rm -r app && rm -r logs"
           },
           "dependencies": {
@@ -360,10 +368,16 @@ pub fn write_package_json(
             "typeorm": "^0.3.20"
           },
           "devDependencies": {
+            "@dolphjs/testing": "^0.1.0",
             "@swc/cli": "^0.1.62",
             "@swc/core": "^1.3.91",
              "@types/express": "^4.17.21",
+            "@types/jest": "^29.5.12",
             "@types/node": "^20.8.2",
+            "@types/supertest": "^6.0.2",
+            "jest": "^29.7.0",
+            "supertest": "^7.0.0",
+            "ts-jest": "^29.2.3",
             "ts-node": "^10.9.1",
             "tsc-alias": "^1.8.8",
             "tsconfig-paths": "^4.2.0",
@@ -397,6 +411,39 @@ pub fn write_package_json(
     let config_str = serde_json::to_string_pretty(&config)?;
     fs::write(file_path, config_str)?;
     Ok(())
+}
+
+pub fn write_jest_config(language: &str, api: &str) -> Result<(), Box<dyn Error>> {
+    // Only TS scaffolds (rest+ts, or graphql — which is always TS) get a
+    // jest.config.js; the plain-JS scaffold has no ts-jest/@dolphjs/testing
+    // devDependencies to run it against.
+    if language.to_string() != "ts" {
+        return Ok(());
+    }
+
+    let _ = api;
+
+    let root_dir = get_root_directory()?;
+    let file_path = root_dir.join("jest.config.js");
+
+    let config = r#"module.exports = {
+  preset: 'ts-jest',
+  testEnvironment: 'node',
+  // Jest's default testMatch does not pick up `*.e2e-spec.ts` (no dot
+  // before "spec") — list it explicitly alongside the usual `*.spec.ts`.
+  testMatch: ['**/*.spec.ts', '**/*.e2e-spec.ts'],
+  testPathIgnorePatterns: ['/node_modules/', '/app/', '/dist/'],
+};
+"#
+    .to_string();
+
+    match fs::write(&file_path, config) {
+        Ok(_) => Ok(()),
+        Err(e) => {
+            eprintln!("{}", format!("Error writing jest config file: {}", e));
+            Err(Box::new(e))
+        }
+    }
 }
 
 pub fn write_gitignore() -> Result<(), Box<dyn Error>> {
