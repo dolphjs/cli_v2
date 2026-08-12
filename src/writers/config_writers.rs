@@ -320,7 +320,7 @@ pub fn write_package_json(
             "clean": "rm -r app && rm -r logs"
           },
           "dependencies": {
-            "@dolphjs/dolph": "^2.0.1"
+            "@dolphjs/dolph": "^1.6.0"
           },
           "devDependencies": {
             "@swc/cli": "^0.1.62",
@@ -353,7 +353,7 @@ pub fn write_package_json(
             "clean": "rm -r app && rm -r logs"
           },
           "dependencies": {
-            "@dolphjs/dolph": "^2.0.1",
+            "@dolphjs/dolph": "^1.6.0",
             "@dolphjs/graphql": "^0.2.0",
             "graphql-scalars": "^1.23.0",
             "type-graphql": "^2.0.0-rc.2",
@@ -388,7 +388,7 @@ pub fn write_package_json(
             "start": "dolph start"
           },
           "dependencies": {
-            "@dolphjs/dolph": "^2.0.1"
+            "@dolphjs/dolph": "^1.6.0"
           }
         })
     };
