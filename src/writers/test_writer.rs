@@ -37,27 +37,19 @@ fn write_controller_spec(
 
     let file_content = format!(
         r#"import {{ {capitalized_name}Controller }} from "./{name}.controller";
-import {{ DResponse }} from "@dolphjs/dolph/common";
 
 // Tier 2 (unit): the controller is a plain class, so it's constructed
 // directly here rather than through `@Component` — no Express, no DI.
-// `res` is mocked because this handler writes to it directly; swap to
-// asserting a return value instead if you switch to auto-return handlers.
+// `greet()` uses Dolph's auto-return style, so its return value is
+// asserted directly; mock `DRes()` instead if you switch a handler to
+// writing to the response directly.
 describe("{capitalized_name}Controller", () => {{
   it("responds to GET /{name}/greet", async () => {{
     const controller = new {capitalized_name}Controller();
 
-    const res = {{
-      set: jest.fn().mockReturnThis(),
-      status: jest.fn().mockReturnThis(),
-      json: jest.fn().mockReturnThis(),
-      send: jest.fn().mockReturnThis(),
-    }} as unknown as DResponse;
+    const result = await controller.greet();
 
-    await controller.greet({{}} as any, res);
-
-    expect(res.status).toHaveBeenCalledWith(200);
-    expect(res.json).toHaveBeenCalledWith({{ message: "you've reached the {name} endpoint." }});
+    expect(result).toEqual({{ message: "you've reached the {name} endpoint." }});
   }});
 }});
 "#
