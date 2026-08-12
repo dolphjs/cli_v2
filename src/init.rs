@@ -109,7 +109,13 @@ pub fn init_dolph_cli(app_name: &str) -> Result<(), Box<dyn Error>> {
             fs::create_dir_all(&shared_path)?;
 
             if config.api == "graphql" {
-                write_datasource_config(&mut config.database)?;
+                // TypeORM's DataSource is only meaningful for a SQL
+                // backend — generating one for a "mongo" choice would
+                // produce `type: "mongo"`, which isn't a valid TypeORM
+                // driver name (mongoose is used for Mongo instead).
+                if config.database != "mongo" {
+                    write_datasource_config(&mut config.database)?;
+                }
                 write_setup_file()?;
                 write_graphql_server_file()?;
             } else {
@@ -122,7 +128,7 @@ pub fn init_dolph_cli(app_name: &str) -> Result<(), Box<dyn Error>> {
             write_tsconfig(config.routing == "spring")?;
         }
 
-        write_dolph_config()?;
+        write_dolph_config(&config.database, &config.routing)?;
         write_package_json(&project_name, &config.language, &config.api)?;
         write_jest_config(&config.language, &config.api)?;
         write_gitignore()?;

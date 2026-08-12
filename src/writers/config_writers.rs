@@ -1,4 +1,3 @@
-use serde::{Deserialize, Serialize};
 use serde_json::json;
 use std::error::Error;
 use std::fs;
@@ -24,12 +23,6 @@ impl Database {
             _ => None,
         }
     }
-}
-
-#[derive(Debug, Serialize, Deserialize)]
-struct DefaultDolphConfig {
-    pub jsonLimit: String,
-    pub port: String,
 }
 
 pub fn find_base_directory() -> Option<PathBuf> {
@@ -192,7 +185,11 @@ pub fn write_swcrc(is_spring: bool) -> Result<(), Box<dyn Error>> {
         },
         "module": {
             "type": "commonjs"
-        }
+        },
+        // Test spec files are co-located under src/ — excluded here so a
+        // production build (`dolph build`, which runs through swc) never
+        // ships them into `app/`.
+        "exclude": [r"\.spec\.ts$", r"\.e2e-spec\.ts$"]
     });
 
     // Pretty print the JSON with proper indentation
@@ -241,7 +238,9 @@ pub fn write_tsconfig(is_spring: bool) -> Result<(), Box<dyn Error>> {
     };
 
     let config = json!({
-      "exclude": ["node_modules"],
+      // Test spec files are co-located under src/ (e.g. src/components/users/users.service.spec.ts) —
+      // excluded here so a production build never ships them into `app/`.
+      "exclude": ["node_modules", "**/*.spec.ts", "**/*.e2e-spec.ts"],
       "compilerOptions": {
         "allowJs": false,
         "declaration": false,
@@ -275,19 +274,43 @@ pub fn write_tsconfig(is_spring: bool) -> Result<(), Box<dyn Error>> {
     Ok(())
 }
 
-pub fn write_dolph_config() -> Result<(), Box<dyn Error>> {
-    // Implementation for writing dolph config
+pub fn write_dolph_config(database: &str, routing: &str) -> Result<(), Box<dyn Error>> {
     let root_dir = get_root_directory()?;
     let file_path = root_dir.join("dolph_config.yaml");
 
-    let config = DefaultDolphConfig {
-        jsonLimit: String::from("2mb"),
-        port: String::from("3300"),
+    // `routing.base` — every generator (controller/component templates,
+    // the docs, the samples) assumes a `/v1` prefix; without this key the
+    // scaffolded app's routes silently mount at the bare path instead.
+    let routing_section = if routing == "spring" {
+        "routing:\n  base: '/v1'\n"
+    } else {
+        ""
     };
 
-    // Pretty print the JSON with proper indentation
-    let config_str = serde_yaml::to_string(&config)?;
-    fs::write(file_path, config_str)?;
+    // Mongo is the one database choice where `server.ts` never calls an
+    // explicit connect function (see write_spring_server_file) — it relies
+    // entirely on this section for DolphFactory to auto-connect. Without
+    // it, a freshly scaffolded Mongo app never connects to a database at
+    // all. mysql/postgresql/other are wired through db.config.ts /
+    // datasource.ts instead, so they don't need an entry here.
+    let database_section = if database == "mongo" {
+        "database:\n  mongo:\n    url: mongodb://localhost:27017/dolph-app\n    autoCreate: false\n"
+    } else {
+        ""
+    };
+
+    let config = format!(
+        r#"port: 3300
+env: development
+jsonLimit: 2mb
+{routing_section}middlewares:
+  cors:
+    activate: true
+    origin: '*'
+{database_section}"#
+    );
+
+    fs::write(file_path, config)?;
     Ok(())
 }
 
