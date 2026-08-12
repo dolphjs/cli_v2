@@ -19,12 +19,15 @@ pub fn write_spring_dto(name: &str) -> Result<(), Box<dyn Error>> {
 
     let capitalized_name = capitalize_first_letter(name);
 
-    let import_statement = r#"import {} from 'class-validator';
-import {} from 'class-transformer';
-    "#
-    .to_string();
+    let import_statement = r#"import { IsOptional, IsString } from 'class-validator';"#.to_string();
 
-    let other_content = format!(r#"export class Create{capitalized_name}Dto {{}}"#);
+    let other_content = format!(
+        r#"export class Create{capitalized_name}Dto {{
+    // Replace with your actual fields, e.g.:
+    // @IsString()
+    // name!: string;
+}}"#
+    );
 
     let file_content = format!("{}\n\n{}\n", import_statement, other_content);
 

@@ -24,13 +24,18 @@ pub fn write_input(name: &str) -> Result<(), Box<dyn Error>> {
     let capitalized_name = capitalize_first_letter(name);
 
     let import_statement = format!(
-        r#"import {{}} from "class-validator";
+        r#"import {{ IsOptional, IsString }} from "class-validator";
 import {{ Field, InputType }} from "type-graphql";"#
     );
 
     let other_file_content = format!(
         r#"@InputType()
-export class Create{capitalized_name}Input{{}}
+export class Create{capitalized_name}Input {{
+    // Replace with your actual fields, e.g.:
+    // @Field()
+    // @IsString()
+    // name!: string;
+}}
 "#
     );
 
