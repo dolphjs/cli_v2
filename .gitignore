@@ -4,3 +4,5 @@
 /src/shared/
 dolph_cli.yaml
 /dolph_app
+/src/.DS_Store
+.DS_Store
