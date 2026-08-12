@@ -32,5 +32,6 @@ pub use model_writer::write_spring_model;
 pub use resolver_writer::write_resolver;
 pub use service_writer::{write_graphql_service, write_spring_service};
 pub use setup_writer::write_setup_file;
+pub use socket_component_writer::write_socket_component;
 pub use socket_writer::write_socket_service;
 pub use test_writer::write_spring_test;
