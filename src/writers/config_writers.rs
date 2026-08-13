@@ -344,13 +344,13 @@ pub fn write_package_json(
             "clean": "rm -r app && rm -r logs"
           },
           "dependencies": {
-            "@dolphjs/dolph": "^1.6.0"
+            "@dolphjs/dolph": "^2.0.0"
           },
           "devDependencies": {
-            "@dolphjs/testing": "^0.1.0",
+            "@dolphjs/testing": "^1.0.0",
             "@swc/cli": "^0.1.62",
             "@swc/core": "^1.3.91",
-             "@types/express": "^4.17.21",
+            "@types/express": "^4.17.21",
             "@types/jest": "^29.5.12",
             "@types/node": "^20.8.2",
             "@types/supertest": "^6.0.2",
