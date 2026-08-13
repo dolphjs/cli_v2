@@ -57,17 +57,15 @@ import { autoInitMySql } from "@dolphjs/dolph/packages";"#
             format!(r#"import {{ DolphFactory }} from "@dolphjs/dolph";"#)
         }
         (Database::None, false) => format!(r#"import {{ DolphFactory }} from "@dolphjs/dolph";"#),
-        (Database::None, true) => format!(
-            r#"import {{ DolphFactory }} from "@dolphjs/dolph";
-import {{ {capitalized_name}Component }} from "./components/{name}/{name}.component.ts";"#
-        ),
+        // `true` means this is the initial `dolph new` scaffold, before any
+        // component has been generated yet — nothing to import.
+        (Database::None, true) => r#"import { DolphFactory } from "@dolphjs/dolph";"#.to_string(),
         (Database::PostgreSQL, false) => {
             format!(r#"import {{ DolphFactory }} from "@dolphjs/dolph";"#)
         }
-        (Database::PostgreSQL, true) => format!(
-            r#"import {{ DolphFactory }} from "@dolphjs/dolph";
-import {{ {capitalized_name}Component }} from "./components/{name}/{name}.component.ts";"#
-        ),
+        (Database::PostgreSQL, true) => {
+            r#"import { DolphFactory } from "@dolphjs/dolph";"#.to_string()
+        }
         (Database::MongoDB, true) => {
             r#"import { DolphFactory } from "@dolphjs/dolph";"#.to_string()
         }
@@ -94,18 +92,16 @@ dolph.start();"#
             r#"const dolph = new DolphFactory([{capitalized_name}Component]);
 dolph.start();"#
         ),
-        (Database::None, true) => format!(
-            r#"const dolph = new DolphFactory([{capitalized_name}Component]);
+        (Database::None, true) => r#"const dolph = new DolphFactory([]);
 dolph.start();"#
-        ),
+            .to_string(),
         (Database::PostgreSQL, false) => format!(
             r#"const dolph = new DolphFactory([{capitalized_name}Component]);
 dolph.start();"#
         ),
-        (Database::PostgreSQL, true) => format!(
-            r#"const dolph = new DolphFactory([{capitalized_name}Component]);
+        (Database::PostgreSQL, true) => r#"const dolph = new DolphFactory([]);
 dolph.start();"#
-        ),
+            .to_string(),
         (Database::MongoDB, true) => r#"const dolph = new DolphFactory([]);
 dolph.start();"#
             .to_string(),
