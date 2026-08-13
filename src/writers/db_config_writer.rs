@@ -17,9 +17,7 @@ pub fn write_db_config(name: &str) -> Result<(), Box<dyn Error>> {
 
     let index_path = configs_path.join("db.config.ts");
 
-    let import_statement = r#"import { initMySql } from "@dolphjs/dolph/packages";
-import {} from "..""#
-        .to_string();
+    let import_statement = r#"import { initMySql } from "@dolphjs/dolph/packages";"#.to_string();
 
     let file_content = r#"export const sequelizeInstance = initMySql(
   "dolph",

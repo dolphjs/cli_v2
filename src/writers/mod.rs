@@ -13,10 +13,11 @@ mod service_writer;
 mod setup_writer;
 mod socket_writer;
 mod socket_component_writer;
+mod test_writer;
 
 pub use config_writers::{
-    write_dolph_config, write_gitignore, write_package_json, write_spring_server_file, write_swcrc,
-    write_tsconfig,
+    write_dolph_config, write_gitignore, write_jest_config, write_package_json,
+    write_spring_server_file, write_swcrc, write_tsconfig,
 };
 
 pub use component_writer::write_spring_component;
@@ -31,4 +32,6 @@ pub use model_writer::write_spring_model;
 pub use resolver_writer::write_resolver;
 pub use service_writer::{write_graphql_service, write_spring_service};
 pub use setup_writer::write_setup_file;
+pub use socket_component_writer::write_socket_component;
 pub use socket_writer::write_socket_service;
+pub use test_writer::write_spring_test;

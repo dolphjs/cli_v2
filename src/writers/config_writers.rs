@@ -1,4 +1,3 @@
-use serde::{Deserialize, Serialize};
 use serde_json::json;
 use std::error::Error;
 use std::fs;
@@ -24,12 +23,6 @@ impl Database {
             _ => None,
         }
     }
-}
-
-#[derive(Debug, Serialize, Deserialize)]
-struct DefaultDolphConfig {
-    pub jsonLimit: String,
-    pub port: String,
 }
 
 pub fn find_base_directory() -> Option<PathBuf> {
@@ -192,7 +185,11 @@ pub fn write_swcrc(is_spring: bool) -> Result<(), Box<dyn Error>> {
         },
         "module": {
             "type": "commonjs"
-        }
+        },
+        // Test spec files are co-located under src/ — excluded here so a
+        // production build (`dolph build`, which runs through swc) never
+        // ships them into `app/`.
+        "exclude": [r"\.spec\.ts$", r"\.e2e-spec\.ts$"]
     });
 
     // Pretty print the JSON with proper indentation
@@ -241,7 +238,9 @@ pub fn write_tsconfig(is_spring: bool) -> Result<(), Box<dyn Error>> {
     };
 
     let config = json!({
-      "exclude": ["node_modules"],
+      // Test spec files are co-located under src/ (e.g. src/components/users/users.service.spec.ts) —
+      // excluded here so a production build never ships them into `app/`.
+      "exclude": ["node_modules", "**/*.spec.ts", "**/*.e2e-spec.ts"],
       "compilerOptions": {
         "allowJs": false,
         "declaration": false,
@@ -275,19 +274,43 @@ pub fn write_tsconfig(is_spring: bool) -> Result<(), Box<dyn Error>> {
     Ok(())
 }
 
-pub fn write_dolph_config() -> Result<(), Box<dyn Error>> {
-    // Implementation for writing dolph config
+pub fn write_dolph_config(database: &str, routing: &str) -> Result<(), Box<dyn Error>> {
     let root_dir = get_root_directory()?;
     let file_path = root_dir.join("dolph_config.yaml");
 
-    let config = DefaultDolphConfig {
-        jsonLimit: String::from("2mb"),
-        port: String::from("3300"),
+    // `routing.base` — every generator (controller/component templates,
+    // the docs, the samples) assumes a `/v1` prefix; without this key the
+    // scaffolded app's routes silently mount at the bare path instead.
+    let routing_section = if routing == "spring" {
+        "routing:\n  base: '/v1'\n"
+    } else {
+        ""
     };
 
-    // Pretty print the JSON with proper indentation
-    let config_str = serde_yaml::to_string(&config)?;
-    fs::write(file_path, config_str)?;
+    // Mongo is the one database choice where `server.ts` never calls an
+    // explicit connect function (see write_spring_server_file) — it relies
+    // entirely on this section for DolphFactory to auto-connect. Without
+    // it, a freshly scaffolded Mongo app never connects to a database at
+    // all. mysql/postgresql/other are wired through db.config.ts /
+    // datasource.ts instead, so they don't need an entry here.
+    let database_section = if database == "mongo" {
+        "database:\n  mongo:\n    url: mongodb://localhost:27017/dolph-app\n    autoCreate: false\n"
+    } else {
+        ""
+    };
+
+    let config = format!(
+        r#"port: 3300
+env: development
+jsonLimit: 2mb
+{routing_section}middlewares:
+  cors:
+    activate: true
+    origin: '*'
+{database_section}"#
+    );
+
+    fs::write(file_path, config)?;
     Ok(())
 }
 
@@ -317,16 +340,23 @@ pub fn write_package_json(
             "build": "dolph build",
             "build:tsc": "tsc && tsc-alias",
             "start": "dolph start",
+            "test": "jest",
             "clean": "rm -r app && rm -r logs"
           },
           "dependencies": {
             "@dolphjs/dolph": "^1.6.0"
           },
           "devDependencies": {
+            "@dolphjs/testing": "^0.1.0",
             "@swc/cli": "^0.1.62",
             "@swc/core": "^1.3.91",
              "@types/express": "^4.17.21",
+            "@types/jest": "^29.5.12",
             "@types/node": "^20.8.2",
+            "@types/supertest": "^6.0.2",
+            "jest": "^29.7.0",
+            "supertest": "^7.0.0",
+            "ts-jest": "^29.2.3",
             "ts-node": "^10.9.1",
             "tsc-alias": "^1.8.8",
             "tsconfig-paths": "^4.2.0",
@@ -350,6 +380,7 @@ pub fn write_package_json(
             "build": "dolph build",
             "build:tsc": "tsc && tsc-alias",
             "start": "dolph start",
+            "test": "jest",
             "clean": "rm -r app && rm -r logs"
           },
           "dependencies": {
@@ -360,10 +391,16 @@ pub fn write_package_json(
             "typeorm": "^0.3.20"
           },
           "devDependencies": {
+            "@dolphjs/testing": "^0.1.0",
             "@swc/cli": "^0.1.62",
             "@swc/core": "^1.3.91",
              "@types/express": "^4.17.21",
+            "@types/jest": "^29.5.12",
             "@types/node": "^20.8.2",
+            "@types/supertest": "^6.0.2",
+            "jest": "^29.7.0",
+            "supertest": "^7.0.0",
+            "ts-jest": "^29.2.3",
             "ts-node": "^10.9.1",
             "tsc-alias": "^1.8.8",
             "tsconfig-paths": "^4.2.0",
@@ -397,6 +434,39 @@ pub fn write_package_json(
     let config_str = serde_json::to_string_pretty(&config)?;
     fs::write(file_path, config_str)?;
     Ok(())
+}
+
+pub fn write_jest_config(language: &str, api: &str) -> Result<(), Box<dyn Error>> {
+    // Only TS scaffolds (rest+ts, or graphql — which is always TS) get a
+    // jest.config.js; the plain-JS scaffold has no ts-jest/@dolphjs/testing
+    // devDependencies to run it against.
+    if language.to_string() != "ts" {
+        return Ok(());
+    }
+
+    let _ = api;
+
+    let root_dir = get_root_directory()?;
+    let file_path = root_dir.join("jest.config.js");
+
+    let config = r#"module.exports = {
+  preset: 'ts-jest',
+  testEnvironment: 'node',
+  // Jest's default testMatch does not pick up `*.e2e-spec.ts` (no dot
+  // before "spec") — list it explicitly alongside the usual `*.spec.ts`.
+  testMatch: ['**/*.spec.ts', '**/*.e2e-spec.ts'],
+  testPathIgnorePatterns: ['/node_modules/', '/app/', '/dist/'],
+};
+"#
+    .to_string();
+
+    match fs::write(&file_path, config) {
+        Ok(_) => Ok(()),
+        Err(e) => {
+            eprintln!("{}", format!("Error writing jest config file: {}", e));
+            Err(Box::new(e))
+        }
+    }
 }
 
 pub fn write_gitignore() -> Result<(), Box<dyn Error>> {

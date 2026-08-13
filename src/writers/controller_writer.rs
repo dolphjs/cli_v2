@@ -21,15 +21,15 @@ pub fn write_spring_controller(name: &str) -> Result<(), Box<dyn Error>> {
 
     let import_statement = format!(
         r#"import {{ DolphControllerHandler }} from "@dolphjs/dolph/classes";
-import {{
-  Dolph,
-  SuccessResponse,
-  DRequest,
-  DResponse
-}} from "@dolphjs/dolph/common";
+import {{ Dolph }} from "@dolphjs/dolph/common";
 import {{ Get, Route }} from "@dolphjs/dolph/decorators";"#
     );
 
+    // Auto-return style: whatever the handler returns is sent as the
+    // response body automatically (wrapped in Dolph's standard success
+    // envelope) — no `res`/`SuccessResponse` needed. See Controllers in the
+    // docs for the DRes()-based alternative if you need to write to the
+    // response directly.
     let other_body = format!(
         r#"@Route('{name}')
 export class {capitalized_name}Controller extends DolphControllerHandler<Dolph> {{
@@ -38,8 +38,8 @@ export class {capitalized_name}Controller extends DolphControllerHandler<Dolph> 
     }}
 
   @Get("greet")
-  async greet (req: DRequest, res: DResponse) {{
-    SuccessResponse({{ res, body: {{ message: "you've reached the {name} endpoint." }} }});
+  async greet() {{
+    return {{ message: "you've reached the {name} endpoint." }};
     }};
 }}"#
     );

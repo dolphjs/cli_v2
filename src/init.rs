@@ -9,7 +9,8 @@ use std::process;
 use crate::properties::DefaultConfig;
 use crate::writers::{
     write_datasource_config, write_dolph_config, write_gitignore, write_graphql_server_file,
-    write_package_json, write_setup_file, write_spring_server_file, write_swcrc, write_tsconfig,
+    write_jest_config, write_package_json, write_setup_file, write_spring_server_file,
+    write_swcrc, write_tsconfig,
 };
 
 pub fn init_command() -> Command<'static> {
@@ -108,7 +109,13 @@ pub fn init_dolph_cli(app_name: &str) -> Result<(), Box<dyn Error>> {
             fs::create_dir_all(&shared_path)?;
 
             if config.api == "graphql" {
-                write_datasource_config(&mut config.database)?;
+                // TypeORM's DataSource is only meaningful for a SQL
+                // backend — generating one for a "mongo" choice would
+                // produce `type: "mongo"`, which isn't a valid TypeORM
+                // driver name (mongoose is used for Mongo instead).
+                if config.database != "mongo" {
+                    write_datasource_config(&mut config.database)?;
+                }
                 write_setup_file()?;
                 write_graphql_server_file()?;
             } else {
@@ -121,8 +128,9 @@ pub fn init_dolph_cli(app_name: &str) -> Result<(), Box<dyn Error>> {
             write_tsconfig(config.routing == "spring")?;
         }
 
-        write_dolph_config()?;
+        write_dolph_config(&config.database, &config.routing)?;
         write_package_json(&project_name, &config.language, &config.api)?;
+        write_jest_config(&config.language, &config.api)?;
         write_gitignore()?;
 
         println!("dolph configurations have been initialized successfully. ✨");

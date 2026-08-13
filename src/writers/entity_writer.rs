@@ -25,7 +25,7 @@ pub fn write_entity(name: &str) -> Result<(), Box<dyn Error>> {
     let capitalized_name = capitalize_first_letter(name);
 
     let import_statement = r#"import { Field, ID, ObjectType } from "type-graphql";
-import { PrimaryGeneratedColumn } from "typeorm";"#
+import { Entity, Index, PrimaryGeneratedColumn } from "typeorm";"#
         .to_string();
 
     let other_file_content = format!(
