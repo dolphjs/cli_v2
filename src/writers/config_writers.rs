@@ -339,7 +339,7 @@ pub fn write_package_json(
             "@dolphjs/dolph": "^3.0.0"
           },
           "devDependencies": {
-            "@dolphjs/testing": "^1.0.0",
+            "@dolphjs/testing": "^2.0.0",
             "@swc/cli": "^0.1.62",
             "@swc/core": "^1.3.91",
             "@types/express": "^4.17.21",
@@ -382,7 +382,7 @@ pub fn write_package_json(
             "type-graphql": "^2.0.0-rc.2"
           },
           "devDependencies": {
-            "@dolphjs/testing": "^1.0.0",
+            "@dolphjs/testing": "^2.0.0",
             "@swc/cli": "^0.1.62",
             "@swc/core": "^1.3.91",
              "@types/express": "^4.17.21",
