@@ -99,7 +99,7 @@ For a **REST + spring** project, this generates, in order: service, DTO, control
 
 ```text
 src/components/users/
-├── users.component.ts        # @Component({ controllers: [], services: [] }) — see note below
+├── users.component.ts        # @Component with the controller and service wired in
 ├── users.controller.ts
 ├── users.controller.spec.ts
 ├── users.dto.ts
@@ -108,8 +108,7 @@ src/components/users/
 └── users.service.spec.ts
 ```
 
-> [!NOTE]
-> **The generated component doesn't wire itself up.** `users.component.ts` is written with empty `controllers`/`services` arrays — you still need to import `UsersController`/`UsersService` and add them yourself, then add `UsersComponent` to the array you pass into `new DolphFactory([...])` in `server.ts`. This is intentional: the generator won't guess which components belong together across files it didn't just create.
+`--all` lists the controller and service in the component, then adds the component to `new DolphFactory([...])` in `src/server.ts`, so its routes work straight away. `--component <name>` does the same with whichever of those files exist. If `server.ts` no longer has that call, the CLI leaves the file alone and tells you what to add.
 
 For a **GraphQL** project, `--all` instead generates an entity, a resolver, and an input, each in their own subfolder (`entities/`, `resolvers/`, `inputs/`) alongside a `services/` folder for the service.
 
