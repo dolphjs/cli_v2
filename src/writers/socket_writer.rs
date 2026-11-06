@@ -1,6 +1,6 @@
-use std::{error::Error, fs};
+use std::error::Error;
 
-use crate::utils::{capitalize_first_letter, ensure_directory_exists};
+use crate::utils::{capitalize_first_letter, ensure_directory_exists, write_generated};
 
 use super::config_writers::{find_base_directory};
 
@@ -20,15 +20,13 @@ pub fn write_socket_service(name: &str) -> Result<(), Box<dyn Error>>{
     let capitalized_name = capitalize_first_letter(name);
 
     let import_statement = format!(
-    r#"import {{ DolphSocketServiceHandler }} from '@dolphjs/dolph/classes';
-import {{ Dolph }} from '@dolphjs/dolph/common';
+    r#"import {{ DolphSocketServiceHandler }} from '@dolphjs/dolph';
     "#);
 
     let other_file_content = format!(
-    r#"export class {capitalized_name}SocketService extends DolphSocketServiceHandler<Dolph> {{
+    r#"export class {capitalized_name}SocketService extends DolphSocketServiceHandler {{
         constructor(){{
             super();
-            this.socketService;
             this.handleEvents();
         }}
 
@@ -43,7 +41,7 @@ import {{ Dolph }} from '@dolphjs/dolph/common';
 
     let file_content = format!("{}\n\n{}\n", import_statement, other_file_content);
 
-    match fs::write(&index_path, file_content) {
+    match write_generated(&index_path, file_content) {
         Ok(_) => Ok(()),
         Err(e) => {
             eprintln!("{}", format!("Error writing socket service file: {}", e));

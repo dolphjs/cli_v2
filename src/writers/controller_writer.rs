@@ -1,6 +1,6 @@
-use std::{error::Error, fs};
+use std::error::Error;
 
-use crate::utils::{capitalize_first_letter, ensure_directory_exists};
+use crate::utils::{capitalize_first_letter, ensure_directory_exists, write_generated};
 
 use super::config_writers::find_base_directory;
 
@@ -20,23 +20,17 @@ pub fn write_spring_controller(name: &str) -> Result<(), Box<dyn Error>> {
     let capitalized_name = capitalize_first_letter(name);
 
     let import_statement = format!(
-        r#"import {{ DolphControllerHandler }} from "@dolphjs/dolph/classes";
-import {{ Dolph }} from "@dolphjs/dolph/common";
-import {{ Get, Route }} from "@dolphjs/dolph/decorators";"#
+        r#"import {{ Get, Route }} from "@dolphjs/dolph";"#
     );
 
     // Auto-return style: whatever the handler returns is sent as the
     // response body automatically (wrapped in Dolph's standard success
-    // envelope) — no `res`/`SuccessResponse` needed. See Controllers in the
+    // envelope). See Controllers in the
     // docs for the DRes()-based alternative if you need to write to the
     // response directly.
     let other_body = format!(
         r#"@Route('{name}')
-export class {capitalized_name}Controller extends DolphControllerHandler<Dolph> {{
-  constructor() {{
-    super();
-    }}
-
+export class {capitalized_name}Controller {{
   @Get("greet")
   async greet() {{
     return {{ message: "you've reached the {name} endpoint." }};
@@ -46,7 +40,7 @@ export class {capitalized_name}Controller extends DolphControllerHandler<Dolph> 
 
     let file_content = format!("{}\n\n{}\n", import_statement, other_body);
 
-    match fs::write(&index_path, file_content) {
+    match write_generated(&index_path, file_content) {
         Ok(_) => Ok(()),
         Err(e) => {
             eprintln!("{}", format!("Error writing controller file: {}", e));

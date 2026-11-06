@@ -8,17 +8,25 @@ pub fn write_setup_file() -> Result<(), Box<dyn Error>> {
     let index_path = base_directory.join("setup.ts");
 
     let import_statement = format!(
-        r#"import {{ buildSchema }} from "type-graphql";
+        r#"import {{ buildSchema, Query, Resolver }} from "type-graphql";
         "#
     );
 
     let other_file_content = format!(
-        r#"export const schema = async function createSchema() {{
-return await buildSchema({{
-    // Your resolvers should go here
-    resolvers: [],
+        r#"// type-graphql needs at least one resolver. Add yours to the list below.
+@Resolver()
+class HealthResolver {{
+  @Query(() => String)
+  health(): string {{
+    return "ok";
+  }}
+}}
+
+export const schema = async function createSchema() {{
+  return await buildSchema({{
+    resolvers: [HealthResolver],
     validate: true,
-    }});
+  }});
 }};
 
 // Your context definition goes here

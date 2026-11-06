@@ -4,8 +4,9 @@ use clap::{arg, ArgMatches, Command};
 
 use serde::{Deserialize, Serialize};
 
+use crate::utils::{set_overwrite, take_skipped};
 use crate::writers::{
-    write_db_config, write_entity, write_graphql_service, write_input, write_resolver, write_socket_component, write_socket_service, write_spring_component, write_spring_controller, write_spring_dto, write_spring_model, write_spring_server_file, write_spring_service, write_spring_test
+    write_entity, write_graphql_service, write_input, write_resolver, write_socket_component, write_socket_service, write_spring_component, write_spring_controller, write_spring_dto, write_spring_model, write_spring_server_file, write_spring_service, write_spring_test
 };
 
 pub type Result<T> = std::result::Result<T, Box<dyn Error>>;
@@ -21,6 +22,13 @@ pub struct DefaultConfig {
     pub database: String,
     pub routing: String,
     pub api: String,
+    // Projects created before adapters existed have no such key, and run on Express.
+    #[serde(default = "default_adapter")]
+    pub adapter: String,
+}
+
+fn default_adapter() -> String {
+    "express".to_string()
 }
 
 impl DefaultConfig {
@@ -30,7 +38,14 @@ impl DefaultConfig {
             database: config.database.to_string(),
             routing: config.routing.to_string(),
             api: config.api.to_string(),
+            adapter: config.adapter.to_string(),
         }
+    }
+}
+
+fn report(what: &str, name: &str) {
+    if !take_skipped() {
+        println!("Generated {what}: {name}");
     }
 }
 
@@ -41,7 +56,7 @@ impl Generator {
 
     pub async fn generate_controller(&self, name: &str) -> Result<()> {
         write_spring_controller(name)?;
-        println!("Generated controller: {}", name);
+        report("controller", name);
         Ok(())
     }
 
@@ -52,36 +67,33 @@ impl Generator {
             write_spring_service(&self.config.database, name)?;
         }
 
-        println!("Generated service: {}", name);
+        report("service", name);
         Ok(())
     }
 
     pub async fn generate_model(&self, name: &str) -> Result<()> {
-        if self.config.database == "mysql" {
-            self.generate_db_config(name).await?;
-        }
         write_spring_model(&self.config.database, name)?;
-        println!("Generated model: {}", name);
+        report("model", name);
         Ok(())
     }
 
     pub async fn generate_route(&self, name: &str) -> Result<()> {
-        println!("Generated route: {}", name);
+        report("route", name);
         Ok(())
     }
 
     pub async fn generate_component(&self, name: &str) -> Result<()> {
         write_spring_component(name)?;
-        println!("Generated component: {} component", name);
+        report("component", name);
         Ok(())
     }
 
     pub async fn generate_socket(&self, name: &str) -> Result<()> {
         write_socket_service(name)?;
         write_socket_component(name)?;
-        println!("Generated socket: {} (service + component)", name);
+        report("socket (service + component)", name);
         println!(
-            "  Wire it into server.ts: new DolphFactory([...], {{ socketService: SocketService, component: new {}SocketComponent() }})",
+            "  Wire it into server.ts: new DolphFactory([...], {{ sockets: {{ component: new {}SocketComponent(), auth: socketJwtAuth(secret) }} }})",
             crate::utils::capitalize_first_letter(name)
         );
         Ok(())
@@ -89,43 +101,37 @@ impl Generator {
 
     pub async fn generate_resolver(&self, name: &str) -> Result<()> {
         write_resolver(name)?;
-        println!("Generated resolver: {}", name);
+        report("resolver", name);
         Ok(())
     }
 
     pub async fn generate_input(&self, name: &str) -> Result<()> {
         write_input(name)?;
-        println!("Generated input: {}", name);
+        report("input", name);
         Ok(())
     }
 
     pub async fn generate_entity(&self, name: &str) -> Result<()> {
         write_entity(name)?;
-        println!("Generated entity: {}", name);
+        report("entity", name);
         Ok(())
     }
 
     pub async fn generate_dto(&self, name: &str) -> Result<()> {
         write_spring_dto(name)?;
-        println!("Generated dto: {}", name);
+        report("dto", name);
         Ok(())
     }
 
     pub async fn generate_test(&self, name: &str) -> Result<()> {
         write_spring_test(name)?;
-        println!("Generated test specs: {}", name);
-        Ok(())
-    }
-
-    pub async fn generate_db_config(&self, name: &str) -> Result<()> {
-        write_db_config(name)?;
-        println!("Generated db config: {}", name);
+        report("test specs", name);
         Ok(())
     }
 
     pub async fn generate_server(&self, name: &str) -> Result<()> {
-        write_spring_server_file(&self.config.database, name)?;
-        println!("Generated server: {}", name);
+        write_spring_server_file(name)?;
+        report("server", name);
         Ok(())
     }
 
@@ -153,7 +159,12 @@ impl Generator {
                 _ => println!("Unknown routing type"),
             }
         } else if self.config.api.to_string() == String::from("graphql") {
-            self.generate_entity(name).await?;
+            // Entities are TypeORM, which a Mongo project doesn't use.
+            if self.config.database == "mongo" {
+                self.generate_model(name).await?;
+            } else {
+                self.generate_entity(name).await?;
+            }
             self.generate_resolver(name).await?;
             self.generate_input(name).await?;
         }
@@ -225,9 +236,12 @@ pub fn init_architecture() -> Command<'static> {
                 .help("Generates all dolphjs files for the named parameter")
                 .required(false),
         )
+        .arg(arg!(-f --force "Replaces generated files that already exist"))
 }
 
 pub async fn run_init_architecture(generator: Generator, matches: &ArgMatches) -> Result<()> {
+    set_overwrite(matches.is_present("force"));
+
     if let Some(name) = matches.value_of("controller") {
         generator.generate_controller(name).await?;
     }

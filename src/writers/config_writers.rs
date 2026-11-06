@@ -18,8 +18,8 @@ impl Database {
         match s.to_lowercase().as_str() {
             "mysql" => Some(Database::MySQL),
             "mongo" => Some(Database::MongoDB),
-            "other" => Some(Database::PostgreSQL),
-            "postgresql" => Some(Database::None),
+            "postgresql" => Some(Database::PostgreSQL),
+            "other" => Some(Database::None),
             _ => None,
         }
     }
@@ -38,74 +38,28 @@ pub fn find_base_directory() -> Option<PathBuf> {
     None
 }
 
-pub fn write_spring_server_file(db: &str, name: &str) -> Result<(), Box<dyn Error>> {
+pub fn write_spring_server_file(name: &str) -> Result<(), Box<dyn Error>> {
     let base_directory = find_base_directory().ok_or_else(|| "Could not find base directory")?;
 
     let index_path = base_directory.join("server.ts");
-    let database = Database::from_str(db).ok_or_else(|| "Invalid database type")?;
 
     let capitalized_name = capitalize_first_letter(name);
 
-    // Generate import statement
-    let import_statement = match (database.clone(), name.is_empty()) {
-        (Database::MySQL, false) => format!(r#"import {{ DolphFactory }} from "@dolphjs/dolph";"#),
-        (Database::MySQL, true) => r#"import { DolphFactory } from "@dolphjs/dolph";
-import { sequelizeInstance } from "@/shared/configs/db.config";
-import { autoInitMySql } from "@dolphjs/dolph/packages";"#
-            .to_string(),
-        (Database::MongoDB, false) => {
-            format!(r#"import {{ DolphFactory }} from "@dolphjs/dolph";"#)
-        }
-        (Database::None, false) => format!(r#"import {{ DolphFactory }} from "@dolphjs/dolph";"#),
-        // `true` means this is the initial `dolph new` scaffold, before any
-        // component has been generated yet — nothing to import.
-        (Database::None, true) => r#"import { DolphFactory } from "@dolphjs/dolph";"#.to_string(),
-        (Database::PostgreSQL, false) => {
-            format!(r#"import {{ DolphFactory }} from "@dolphjs/dolph";"#)
-        }
-        (Database::PostgreSQL, true) => {
-            r#"import { DolphFactory } from "@dolphjs/dolph";"#.to_string()
-        }
-        (Database::MongoDB, true) => {
-            r#"import { DolphFactory } from "@dolphjs/dolph";"#.to_string()
-        }
+    let mut imports = vec![r#"import { DolphFactory } from "@dolphjs/dolph";"#.to_string()];
+
+    // `name` is empty for the initial `dolph new` scaffold, before any
+    // component has been generated.
+    let components = if name.is_empty() {
+        String::new()
+    } else {
+        imports.push(format!(
+            r#"import {{ {capitalized_name}Component }} from "./components/{name}/{name}.component";"#
+        ));
+        format!("{capitalized_name}Component")
     };
 
-    // Generate other file content
-    let other_file_content = match (database.clone(), name.is_empty()) {
-        (Database::MySQL, false) => format!(
-            r#"const dolph = new DolphFactory([{capitalized_name}Component]);
-autoInitMySql(sequelizeInstance);
-
-dolph.start();"#
-        ),
-        (Database::MySQL, true) => r#"const dolph = new DolphFactory([]);
-autoInitMySql(sequelizeInstance);
-
-dolph.start();"#
-            .to_string(),
-        (Database::MongoDB, false) => format!(
-            r#"const dolph = new DolphFactory([{capitalized_name}Component]);
-dolph.start();"#
-        ),
-        (Database::None, false) => format!(
-            r#"const dolph = new DolphFactory([{capitalized_name}Component]);
-dolph.start();"#
-        ),
-        (Database::None, true) => r#"const dolph = new DolphFactory([]);
-dolph.start();"#
-            .to_string(),
-        (Database::PostgreSQL, false) => format!(
-            r#"const dolph = new DolphFactory([{capitalized_name}Component]);
-dolph.start();"#
-        ),
-        (Database::PostgreSQL, true) => r#"const dolph = new DolphFactory([]);
-dolph.start();"#
-            .to_string(),
-        (Database::MongoDB, true) => r#"const dolph = new DolphFactory([]);
-dolph.start();"#
-            .to_string(),
-    };
+    let import_statement = imports.join("\n");
+    let other_file_content = format!("const dolph = new DolphFactory([{components}]);\n\ndolph.start();");
 
     let file_content = format!("{}\n\n{}\n", import_statement, other_file_content);
 
@@ -270,7 +224,11 @@ pub fn write_tsconfig(is_spring: bool) -> Result<(), Box<dyn Error>> {
     Ok(())
 }
 
-pub fn write_dolph_config(database: &str, routing: &str) -> Result<(), Box<dyn Error>> {
+pub fn write_dolph_config(
+    database: &str,
+    routing: &str,
+    adapter: &str,
+) -> Result<(), Box<dyn Error>> {
     let root_dir = get_root_directory()?;
     let file_path = root_dir.join("dolph_config.yaml");
 
@@ -283,23 +241,27 @@ pub fn write_dolph_config(database: &str, routing: &str) -> Result<(), Box<dyn E
         ""
     };
 
-    // Mongo is the one database choice where `server.ts` never calls an
-    // explicit connect function (see write_spring_server_file) — it relies
-    // entirely on this section for DolphFactory to auto-connect. Without
-    // it, a freshly scaffolded Mongo app never connects to a database at
-    // all. mysql/postgresql/other are wired through db.config.ts /
-    // datasource.ts instead, so they don't need an entry here.
-    let database_section = if database == "mongo" {
-        "database:\n  mongo:\n    url: mongodb://localhost:27017/dolph-app\n    autoCreate: false\n"
+    // `dolph.start()` connects whatever is listed here, so this section is all
+    // a project needs to reach its database.
+    let database_section = match database {
+        "mongo" => "database:\n  mongo:\n    url: mongodb://localhost:27017/dolph-app\n".to_string(),
+        "mysql" => typeorm_section("mysql", 3306),
+        "postgresql" => typeorm_section("postgres", 5432),
+        _ => String::new(),
+    };
+
+    // Express is the default, so it doesn't need a line of its own.
+    let adapter_section = if adapter == "express" {
+        String::new()
     } else {
-        ""
+        format!("adapter: {adapter}\n")
     };
 
     let config = format!(
         r#"port: 3300
 env: development
 jsonLimit: 2mb
-{routing_section}middlewares:
+{adapter_section}{routing_section}middlewares:
   cors:
     activate: true
     origin: '*'
@@ -310,16 +272,50 @@ jsonLimit: 2mb
     Ok(())
 }
 
+/// `sensitive` values come from SQL_USER and SQL_PASSWORD in `.env`. Entities are
+/// matched in `app/` because that's what runs: `dolph build` compiles `src/` into it.
+fn typeorm_section(driver: &str, port: u16) -> String {
+    format!(
+        r#"database:
+  typeorm:
+    options:
+      type: {driver}
+      host: localhost
+      port: {port}
+      username: sensitive
+      password: sensitive
+      database: dolph_app
+      synchronize: false
+      entities:
+        - app/**/*.entity.js
+"#
+    )
+}
+
+/// Database drivers are optional peers of `@dolphjs/dolph`, so a project has
+/// to depend on the one it uses. SQL always goes through TypeORM.
+fn driver_dependencies(database: &str, api: &str) -> Vec<(&'static str, &'static str)> {
+    match (database, api) {
+        ("mongo", _) => vec![("mongoose", "^8.24.8")],
+        ("mysql", _) => vec![("typeorm", "^1.1.0"), ("mysql2", "^3.11.0")],
+        ("postgresql", _) => vec![("typeorm", "^1.1.0"), ("pg", "^8.11.3")],
+        (_, "graphql") => vec![("typeorm", "^1.1.0")],
+        _ => vec![],
+    }
+}
+
 pub fn write_package_json(
     project_name: &str,
     language: &str,
     api: &str,
+    database: &str,
+    adapter: &str,
 ) -> Result<(), Box<dyn Error>> {
     // Implementation for writing package.json
     let root_dir = get_root_directory()?;
     let file_path = root_dir.join("package.json");
 
-    let config = if language.to_string() == "ts" && api.to_string() == "rest" {
+    let mut config = if language.to_string() == "ts" && api.to_string() == "rest" {
         json!({
           "name": project_name.to_string(),
           "version": "1.0.0",
@@ -327,7 +323,7 @@ pub fn write_package_json(
           "author": "",
           "license": "MIT",
           "engines": {
-            "node": ">=18.0.0"
+            "node": "^20.19.0 || ^22.13.0 || >=24.11.0"
           },
           "scripts": {
             "dev:start": "dolph watch",
@@ -340,10 +336,10 @@ pub fn write_package_json(
             "clean": "rm -r app && rm -r logs"
           },
           "dependencies": {
-            "@dolphjs/dolph": "^2.0.0"
+            "@dolphjs/dolph": "^3.0.0"
           },
           "devDependencies": {
-            "@dolphjs/testing": "^1.0.0",
+            "@dolphjs/testing": "^2.0.0",
             "@swc/cli": "^0.1.62",
             "@swc/core": "^1.3.91",
             "@types/express": "^4.17.21",
@@ -367,7 +363,7 @@ pub fn write_package_json(
           "author": "",
           "license": "MIT",
           "engines": {
-            "node": ">=18.0.0"
+            "node": "^20.19.0 || ^22.13.0 || >=24.11.0"
           },
           "scripts": {
             "dev:start": "dolph watch",
@@ -380,14 +376,13 @@ pub fn write_package_json(
             "clean": "rm -r app && rm -r logs"
           },
           "dependencies": {
-            "@dolphjs/dolph": "^1.6.0",
+            "@dolphjs/dolph": "^3.0.0",
             "@dolphjs/graphql": "^0.2.0",
             "graphql-scalars": "^1.23.0",
-            "type-graphql": "^2.0.0-rc.2",
-            "typeorm": "^0.3.20"
+            "type-graphql": "^2.0.0-rc.2"
           },
           "devDependencies": {
-            "@dolphjs/testing": "^0.1.0",
+            "@dolphjs/testing": "^2.0.0",
             "@swc/cli": "^0.1.62",
             "@swc/core": "^1.3.91",
              "@types/express": "^4.17.21",
@@ -411,7 +406,7 @@ pub fn write_package_json(
           "author": "",
           "license": "MIT",
           "engines": {
-            "node": ">=18.0.0"
+            "node": "^20.19.0 || ^22.13.0 || >=24.11.0"
           },
           "scripts": {
             "dev:start": "dolph watch",
@@ -421,10 +416,19 @@ pub fn write_package_json(
             "start": "dolph start"
           },
           "dependencies": {
-            "@dolphjs/dolph": "^1.6.0"
+            "@dolphjs/dolph": "^3.0.0"
           }
         })
     };
+
+    for (package, version) in driver_dependencies(database, api) {
+        config["dependencies"][package] = json!(version);
+    }
+
+    if adapter == "fastify" {
+        config["dependencies"]["fastify"] = json!("^5.12.8");
+        config["dependencies"]["@fastify/middie"] = json!("^9.3.6");
+    }
 
     // Pretty print the JSON with proper indentation
     let config_str = serde_json::to_string_pretty(&config)?;
@@ -448,6 +452,7 @@ pub fn write_jest_config(language: &str, api: &str) -> Result<(), Box<dyn Error>
     let config = r#"module.exports = {
   preset: 'ts-jest',
   testEnvironment: 'node',
+  moduleNameMapper: { '^@/(.*)$': '<rootDir>/src/$1' },
   // Jest's default testMatch does not pick up `*.e2e-spec.ts` (no dot
   // before "spec") — list it explicitly alongside the usual `*.spec.ts`.
   testMatch: ['**/*.spec.ts', '**/*.e2e-spec.ts'],

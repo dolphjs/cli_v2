@@ -73,21 +73,24 @@ dolph generate [OPTIONS]
 | `-a` | `--all <name>` | Everything below appropriate to your project's API style — see [Generating a Full Feature](#generating-a-full-feature). |
 | `-c` | `--controller <name>` | A controller (`@Route`, auto-return `greet` handler). |
 | `-s` | `--service <name>` | A service (`@DService()`, database-aware — see [Database Support](#database-support)). |
-| `-y` | `--component <name>` | A `@Component({ controllers: [], services: [] })` shell. |
+| `-y` | `--component <name>` | A `@Component` listing the controller and service in its folder, added to `server.ts`. |
 | `-d` | `--dto <name>` | A `class-validator`-ready DTO stub. |
-| `-m` | `--model <name>` | A Mongoose schema or Sequelize model, depending on your database. |
+| `-m` | `--model <name>` | A Mongoose schema or TypeORM entity, depending on your database. |
 | `-t` | `--test <name>` | A controller spec and a service spec — see [Testing](#testing). |
 | `-k` | `--socket <name>` | A Socket Service **and** its Socket Component — see [WebSockets](#websockets). |
 | `-e` | `--entity <name>` | (GraphQL) A `type-graphql`/`typeorm` entity. |
 | `-v` | `--resolver <name>` | (GraphQL) A `@Resolver()` stub. |
 | `-i` | `--input <name>` | (GraphQL) An `@InputType()` stub. |
 | `-r` | `--route <name>` | (Express routing) Currently a no-op — express-routing projects don't get generator support beyond the initial scaffold yet. |
+| `-f` | `--force` | Replaces files that already exist, instead of skipping them. |
 
 Flags can be combined in one invocation:
 
 ```bash
 dolph generate --controller users --service users
 ```
+
+Generated files are yours once they exist, so `dolph generate` skips any that are already there. That makes `--all` safe to rerun: it fills in what's missing and leaves your code alone. Add `--force` to replace them, which discards your changes to those files.
 
 #### Generating a Full Feature
 
@@ -99,7 +102,7 @@ For a **REST + spring** project, this generates, in order: service, DTO, control
 
 ```text
 src/components/users/
-├── users.component.ts        # @Component({ controllers: [], services: [] }) — see note below
+├── users.component.ts        # @Component with the controller and service wired in
 ├── users.controller.ts
 ├── users.controller.spec.ts
 ├── users.dto.ts
@@ -108,8 +111,7 @@ src/components/users/
 └── users.service.spec.ts
 ```
 
-> [!NOTE]
-> **The generated component doesn't wire itself up.** `users.component.ts` is written with empty `controllers`/`services` arrays — you still need to import `UsersController`/`UsersService` and add them yourself, then add `UsersComponent` to the array you pass into `new DolphFactory([...])` in `server.ts`. This is intentional: the generator won't guess which components belong together across files it didn't just create.
+`--all` lists the controller and service in the component, then adds the component to `new DolphFactory([...])` in `src/server.ts`, so its routes work straight away. `--component <name>` does the same with whichever of those files exist. If `server.ts` no longer has that call, the CLI leaves the file alone and tells you what to add.
 
 For a **GraphQL** project, `--all` instead generates an entity, a resolver, and an input, each in their own subfolder (`entities/`, `resolvers/`, `inputs/`) alongside a `services/` folder for the service.
 
@@ -161,7 +163,6 @@ my-app/
 ├── src/
 │   ├── server.ts
 │   ├── shared/
-│   │   ├── configs/           # db.config.ts lives here for MySQL projects
 │   │   └── socket/            # socket services/components generated here
 │   └── components/
 │       └── <name>/
@@ -196,12 +197,12 @@ Your `dolph new` database choice changes what `generate --service`/`generate --m
 | Database | Service | Model |
 |---|---|---|
 | `mongo` | `@InjectMongo(...)` + `@DService()`, typed against the generated Mongoose model. | A Mongoose schema (`I<Name>` interface + `<Name>Model`). |
-| `mysql` | `@InjectMySQL(...)` + `@DService()`, typed against a Sequelize model. First `generate --model` also writes `src/shared/configs/db.config.ts` (a real `initMySql(...)` call, called from `server.ts`). | A `sequelizeInstance.define(...)` model. |
-| `postgresql` / `other` | Plain `@DService()`-decorated service — no ORM wiring generated yet. | Not generated for these — bring your own. |
+| `mysql` / `postgresql` | `@DService()` with a `getDataSource().getRepository(...)` getter. | A TypeORM entity, `<name>.entity.ts`. |
+| `other` | Plain `@DService()`-decorated service, with no ORM wiring. | Not generated, so bring your own. |
 
 `@DService()` shows up on every generated service regardless of database, even ones with no dependencies today: TypeScript's `emitDecoratorMetadata` only emits constructor-parameter reflection metadata for a class that has *some* decorator on it, and `@Component` depends on exactly that metadata to resolve a service's own constructor-injected dependencies. Without it, a service that later grows a dependency on another service fails to receive it, silently.
 
-For Mongo specifically: `dolph_config.yaml` gets a `database.mongo` block pointed at `mongodb://localhost:27017/dolph-app` by default, because `server.ts` never calls an explicit connect function for a Mongo project — `DolphFactory` auto-connects from that config section alone. Point it at a real connection string before you rely on it outside local dev.
+`dolph_config.yaml` gets a `database` block for Mongo, MySQL and PostgreSQL, and `dolph.start()` connects it. The app won't start until that database is reachable, so point it at your own server, and set `SQL_USER` and `SQL_PASSWORD` in `.env` for MySQL and PostgreSQL. Add `required: false` to start without it.
 
 ## Testing
 
@@ -219,7 +220,7 @@ dolph generate --socket chat
 Writes **two** files to `src/shared/socket/`: `chat.socket.service.ts` (extends `DolphSocketServiceHandler`, a starter `connection` handler) and `chat.socket.component.ts` (`@Socket({ services: [], socketServices: [ChatSocketService] })`). Neither does anything until you wire the component into `server.ts` yourself — the CLI prints the snippet you need after generating:
 
 ```typescript
-new DolphFactory([...], { socketService: SocketService, component: new ChatSocketComponent() })
+new DolphFactory([...], { sockets: { component: new ChatSocketComponent() } })
 ```
 
 ## GraphQL Mode
@@ -227,8 +228,7 @@ new DolphFactory([...], { socketService: SocketService, component: new ChatSocke
 Choosing `graphql` at `dolph new` always uses spring routing and TypeScript, and additionally scaffolds:
 
 - `src/setup.ts` — `buildSchema()` (empty `resolvers: []` to start) and a `context` function.
-- `src/shared/configs/data_source.ts` — a TypeORM `DataSource`, **unless** you chose `mongo` as your database (TypeORM isn't in play there — Mongoose is, same as REST mode).
-- `server.ts` wired to `AppDataSource.initialize().then(() => dolph.start())`, passing `schema()` (a `Promise<GraphQLSchema>`) straight into `DolphFactory`'s GraphQL adapter, which awaits it internally.
+- `server.ts`, passing `schema()` (a `Promise<GraphQLSchema>`) to `DolphFactory`'s `graphql` option, which awaits it internally. Databases connect from `dolph_config.yaml`, same as REST mode.
 
 `dolph generate --all <name>` in GraphQL mode produces an entity, a resolver, and an input instead of a REST controller/DTO/model.
 

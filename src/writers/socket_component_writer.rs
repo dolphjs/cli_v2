@@ -1,6 +1,6 @@
-use std::{error::Error, fs};
+use std::error::Error;
 
-use crate::utils::{capitalize_first_letter, ensure_directory_exists};
+use crate::utils::{capitalize_first_letter, ensure_directory_exists, write_generated};
 
 use super::config_writers::find_base_directory;
 
@@ -8,9 +8,8 @@ use super::config_writers::find_base_directory;
 /// `@Component` plays for controllers/services — without one, a generated
 /// socket service is never actually wired into the app. `dolph generate
 /// --socket <name>` writes both files; this one still needs to be passed
-/// into `DolphFactory`'s second constructor argument by hand (`{ socketService:
-/// SocketService, component: new XSocketComponent() }`), since that wiring
-/// lives in the user's own server.ts.
+/// into `DolphFactory`'s options by hand (`{ sockets: { component: new
+/// XSocketComponent() } }`), since that wiring lives in the user's own server.ts.
 pub fn write_socket_component(name: &str) -> Result<(), Box<dyn Error>> {
     let base_directory = find_base_directory().ok_or_else(|| "Could not find base directory")?;
 
@@ -27,8 +26,7 @@ pub fn write_socket_component(name: &str) -> Result<(), Box<dyn Error>> {
     let capitalized_name = capitalize_first_letter(name);
 
     let import_statement = format!(
-        r#"import {{ Socket }} from "@dolphjs/dolph/decorators";
-import {{ SocketComponent }} from "@dolphjs/dolph/packages";
+        r#"import {{ Socket, SocketComponent }} from "@dolphjs/dolph";
 import {{ {capitalized_name}SocketService }} from "./{name}.socket.service";"#
     );
 
@@ -42,7 +40,7 @@ export class {capitalized_name}SocketComponent extends SocketComponent {{}}"#
 
     let file_content = format!("{}\n\n{}\n", import_statement, other_file_content);
 
-    match fs::write(&index_path, file_content) {
+    match write_generated(&index_path, file_content) {
         Ok(_) => Ok(()),
         Err(e) => {
             eprintln!("{}", format!("Error writing socket component file: {}", e));
