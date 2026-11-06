@@ -21,6 +21,13 @@ pub struct DefaultConfig {
     pub database: String,
     pub routing: String,
     pub api: String,
+    // Projects created before adapters existed have no such key, and run on Express.
+    #[serde(default = "default_adapter")]
+    pub adapter: String,
+}
+
+fn default_adapter() -> String {
+    "express".to_string()
 }
 
 impl DefaultConfig {
@@ -30,6 +37,7 @@ impl DefaultConfig {
             database: config.database.to_string(),
             routing: config.routing.to_string(),
             api: config.api.to_string(),
+            adapter: config.adapter.to_string(),
         }
     }
 }

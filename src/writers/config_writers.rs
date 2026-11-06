@@ -236,7 +236,11 @@ pub fn write_tsconfig(is_spring: bool) -> Result<(), Box<dyn Error>> {
     Ok(())
 }
 
-pub fn write_dolph_config(database: &str, routing: &str) -> Result<(), Box<dyn Error>> {
+pub fn write_dolph_config(
+    database: &str,
+    routing: &str,
+    adapter: &str,
+) -> Result<(), Box<dyn Error>> {
     let root_dir = get_root_directory()?;
     let file_path = root_dir.join("dolph_config.yaml");
 
@@ -261,11 +265,18 @@ pub fn write_dolph_config(database: &str, routing: &str) -> Result<(), Box<dyn E
         ""
     };
 
+    // Express is the default, so it doesn't need a line of its own.
+    let adapter_section = if adapter == "express" {
+        String::new()
+    } else {
+        format!("adapter: {adapter}\n")
+    };
+
     let config = format!(
         r#"port: 3300
 env: development
 jsonLimit: 2mb
-{routing_section}middlewares:
+{adapter_section}{routing_section}middlewares:
   cors:
     activate: true
     origin: '*'
@@ -295,6 +306,7 @@ pub fn write_package_json(
     language: &str,
     api: &str,
     database: &str,
+    adapter: &str,
 ) -> Result<(), Box<dyn Error>> {
     // Implementation for writing package.json
     let root_dir = get_root_directory()?;
@@ -408,6 +420,11 @@ pub fn write_package_json(
 
     for (package, version) in driver_dependencies(database, api) {
         config["dependencies"][package] = json!(version);
+    }
+
+    if adapter == "fastify" {
+        config["dependencies"]["fastify"] = json!("^5.12.8");
+        config["dependencies"]["@fastify/middie"] = json!("^9.3.6");
     }
 
     // Pretty print the JSON with proper indentation

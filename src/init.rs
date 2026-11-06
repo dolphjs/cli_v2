@@ -83,6 +83,18 @@ pub fn init_dolph_cli(app_name: &str) -> Result<(), Box<dyn Error>> {
             language = "ts";
         }
 
+        // Express routing is built on Express Routers, which Fastify can't run.
+        let adapter = if routing == "spring" {
+            let adapter_options = ["express", "fastify"];
+            adapter_options[Select::with_theme(&theme)
+                .with_prompt("Which server should dolph run on?")
+                .default(0)
+                .items(&adapter_options)
+                .interact()?]
+        } else {
+            "express"
+        };
+
         let database_options = ["mongo", "mysql", "postgresql", "other"];
         let database = database_options[Select::with_theme(&theme)
             .with_prompt("What is your database of choice?")
@@ -95,6 +107,7 @@ pub fn init_dolph_cli(app_name: &str) -> Result<(), Box<dyn Error>> {
             api: api.to_string(),
             database: database.to_string(),
             routing: routing.to_string(),
+            adapter: adapter.to_string(),
         };
 
         let yaml_content = format!(
@@ -132,8 +145,14 @@ pub fn init_dolph_cli(app_name: &str) -> Result<(), Box<dyn Error>> {
             write_tsconfig(config.routing == "spring")?;
         }
 
-        write_dolph_config(&config.database, &config.routing)?;
-        write_package_json(&project_name, &config.language, &config.api, &config.database)?;
+        write_dolph_config(&config.database, &config.routing, &config.adapter)?;
+        write_package_json(
+            &project_name,
+            &config.language,
+            &config.api,
+            &config.database,
+            &config.adapter,
+        )?;
         write_jest_config(&config.language, &config.api)?;
         write_gitignore()?;
 
