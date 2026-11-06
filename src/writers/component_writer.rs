@@ -20,7 +20,7 @@ pub fn write_spring_component(name: &str) -> Result<(), Box<dyn Error>> {
     let capitalized_name = capitalize_first_letter(name);
 
     let content = format!(
-        r#"import {{ Component }} from "@dolphjs/dolph/decorators";
+        r#"import {{ Component }} from "@dolphjs/dolph";
 
 @Component({{ controllers: [], services: [] }})
 export class {capitalized_name}Component {{}};"#

@@ -23,28 +23,20 @@ pub fn write_spring_service(db: &str, name: &str) -> Result<(), Box<dyn Error>> 
 
     let import_statement = match database.clone() {
         Database::MySQL => format!(
-            r#"import {{ DolphServiceHandler }} from "@dolphjs/dolph/classes";
-import {{ Dolph }} from "@dolphjs/dolph/common";
-import {{ InjectMySQL, DService }} from "@dolphjs/dolph/decorators";
+            r#"import {{ InjectMySQL, DService }} from "@dolphjs/dolph";
 import {{ ModelStatic, Model }} from "sequelize";
 import {{ {name}Model }} from "./{name}.model"; "#
         ),
         Database::MongoDB => format!(
-            r#"import {{ DolphServiceHandler }} from "@dolphjs/dolph/classes";
-import {{ Dolph }} from "@dolphjs/dolph/common";
-import {{ InjectMongo, DService }} from "@dolphjs/dolph/decorators";
+            r#"import {{ InjectMongo, DService }} from "@dolphjs/dolph";
 import {{ Model }} from "mongoose";
 import {{ {capitalized_name}Model, I{capitalized_name} }} from "./{name}.model"; "#
         ),
         Database::PostgreSQL => format!(
-            r#"import {{ DolphServiceHandler }} from "@dolphjs/dolph/classes";
-import {{ Dolph }} from "@dolphjs/dolph/common";
-import {{ DService }} from "@dolphjs/dolph/decorators";"#
+            r#"import {{ DService }} from "@dolphjs/dolph";"#
         ),
         Database::None => format!(
-            r#"import {{ DolphServiceHandler }} from "@dolphjs/dolph/classes";
-import {{ Dolph }} from "@dolphjs/dolph/common";
-import {{ DService }} from "@dolphjs/dolph/decorators";"#
+            r#"import {{ DService }} from "@dolphjs/dolph";"#
         ),
     };
 
@@ -61,39 +53,25 @@ import {{ DService }} from "@dolphjs/dolph/decorators";"#
         Database::MongoDB => format!(
             r#"@InjectMongo("{name}Model", {capitalized_name}Model)
 @DService()
-export class {capitalized_name}Service extends DolphServiceHandler<Dolph>{{
+export class {capitalized_name}Service {{
     private {name}Model!: Model<I{capitalized_name}>;
-
-    constructor() {{
-        super("{name}Service");
-    }}
 }}"#
         ),
         Database::MySQL => format!(
             r#"@InjectMySQL("{name}Model", {name}Model)
 @DService()
-export class {capitalized_name}Service extends DolphServiceHandler<Dolph>{{
+export class {capitalized_name}Service {{
     private {name}Model!: ModelStatic<Model<any, any>>;
-
-    constructor() {{
-        super("{name}Service");
-    }}
 }}"#
         ),
         Database::PostgreSQL => format!(
             r#"@DService()
-export class {capitalized_name}Service extends DolphServiceHandler<Dolph>{{
-    constructor() {{
-        super("{name}Service");
-    }}
+export class {capitalized_name}Service {{
 }}"#
         ),
         Database::None => format!(
             r#"@DService()
-export class {capitalized_name}Service extends DolphServiceHandler<Dolph>{{
-    constructor() {{
-        super("{name}Service");
-    }}
+export class {capitalized_name}Service {{
 }}"#
         ),
     };
@@ -129,22 +107,15 @@ pub fn write_graphql_service(name: &str) -> Result<(), Box<dyn Error>> {
     let capitalized_name = capitalize_first_letter(name);
 
     let import_statement = format!(
-        r#"import {{ DolphServiceHandler }} from "@dolphjs/dolph/classes";
-import {{ Dolph }} from "@dolphjs/dolph/common";
-import {{ DService }} from "@dolphjs/dolph/decorators";
+        r#"import {{ DService }} from "@dolphjs/dolph";
 import {{ Create{capitalized_name}Input }} from "../inputs/{name}.inputs";
 "#
     );
 
     let other_file_content = format!(
         r#"@DService()
-export class {capitalized_name}Service extends DolphServiceHandler<Dolph> {{
-// Your repository should be here
-
-    constructor() {{
-        super("{name}Service");
-        // Your repository should be initialized here
-    }}
+export class {capitalized_name}Service {{
+    // Your repository should be here
 
     async create{capitalized_name}(data: Create{capitalized_name}Input) {{}}
 }}

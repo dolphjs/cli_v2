@@ -27,8 +27,7 @@ pub fn write_socket_component(name: &str) -> Result<(), Box<dyn Error>> {
     let capitalized_name = capitalize_first_letter(name);
 
     let import_statement = format!(
-        r#"import {{ Socket }} from "@dolphjs/dolph/decorators";
-import {{ SocketComponent }} from "@dolphjs/dolph/packages";
+        r#"import {{ Socket, SocketComponent }} from "@dolphjs/dolph";
 import {{ {capitalized_name}SocketService }} from "./{name}.socket.service";"#
     );
 

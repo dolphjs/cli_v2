@@ -20,9 +20,7 @@ pub fn write_spring_controller(name: &str) -> Result<(), Box<dyn Error>> {
     let capitalized_name = capitalize_first_letter(name);
 
     let import_statement = format!(
-        r#"import {{ DolphControllerHandler }} from "@dolphjs/dolph/classes";
-import {{ Dolph }} from "@dolphjs/dolph/common";
-import {{ Get, Route }} from "@dolphjs/dolph/decorators";"#
+        r#"import {{ Get, Route }} from "@dolphjs/dolph";"#
     );
 
     // Auto-return style: whatever the handler returns is sent as the
@@ -32,11 +30,7 @@ import {{ Get, Route }} from "@dolphjs/dolph/decorators";"#
     // response directly.
     let other_body = format!(
         r#"@Route('{name}')
-export class {capitalized_name}Controller extends DolphControllerHandler<Dolph> {{
-  constructor() {{
-    super();
-    }}
-
+export class {capitalized_name}Controller {{
   @Get("greet")
   async greet() {{
     return {{ message: "you've reached the {name} endpoint." }};

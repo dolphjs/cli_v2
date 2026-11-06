@@ -81,7 +81,7 @@ impl Generator {
         write_socket_component(name)?;
         println!("Generated socket: {} (service + component)", name);
         println!(
-            "  Wire it into server.ts: new DolphFactory([...], {{ socketService: SocketService, component: new {}SocketComponent() }})",
+            "  Wire it into server.ts: new DolphFactory([...], {{ socketService: SocketService, component: new {}SocketComponent(), auth: socketJwtAuth(secret) }})",
             crate::utils::capitalize_first_letter(name)
         );
         Ok(())

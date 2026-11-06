@@ -51,7 +51,7 @@ pub fn write_spring_server_file(db: &str, name: &str) -> Result<(), Box<dyn Erro
         (Database::MySQL, false) => format!(r#"import {{ DolphFactory }} from "@dolphjs/dolph";"#),
         (Database::MySQL, true) => r#"import { DolphFactory } from "@dolphjs/dolph";
 import { sequelizeInstance } from "@/shared/configs/db.config";
-import { autoInitMySql } from "@dolphjs/dolph/packages";"#
+import { autoInitMySql } from "@dolphjs/dolph";"#
             .to_string(),
         (Database::MongoDB, false) => {
             format!(r#"import {{ DolphFactory }} from "@dolphjs/dolph";"#)

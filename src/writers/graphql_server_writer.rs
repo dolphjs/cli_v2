@@ -7,10 +7,9 @@ pub fn write_graphql_server_file() -> Result<(), Box<dyn Error>> {
 
     let index_path = base_directory.join("server.ts");
 
-    let import_statement = r#"import { DolphFactory} from "@dolphjs/dolph";
+    let import_statement = r#"import { DolphFactory, logger } from "@dolphjs/dolph";
 import { context, schema, session } from "./setup";
 import { AppDataSource } from "./shared/configs/data_source";
-import { logger } from "@dolphjs/dolph/utilities";
 "#
     .to_string();
 

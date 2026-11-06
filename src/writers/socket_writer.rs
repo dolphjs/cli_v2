@@ -20,15 +20,13 @@ pub fn write_socket_service(name: &str) -> Result<(), Box<dyn Error>>{
     let capitalized_name = capitalize_first_letter(name);
 
     let import_statement = format!(
-    r#"import {{ DolphSocketServiceHandler }} from '@dolphjs/dolph/classes';
-import {{ Dolph }} from '@dolphjs/dolph/common';
+    r#"import {{ DolphSocketServiceHandler }} from '@dolphjs/dolph';
     "#);
 
     let other_file_content = format!(
-    r#"export class {capitalized_name}SocketService extends DolphSocketServiceHandler<Dolph> {{
+    r#"export class {capitalized_name}SocketService extends DolphSocketServiceHandler {{
         constructor(){{
             super();
-            this.socketService;
             this.handleEvents();
         }}
 
