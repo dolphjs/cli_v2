@@ -18,8 +18,8 @@ impl Database {
         match s.to_lowercase().as_str() {
             "mysql" => Some(Database::MySQL),
             "mongo" => Some(Database::MongoDB),
-            "other" => Some(Database::PostgreSQL),
-            "postgresql" => Some(Database::None),
+            "postgresql" => Some(Database::PostgreSQL),
+            "other" => Some(Database::None),
             _ => None,
         }
     }
@@ -38,20 +38,14 @@ pub fn find_base_directory() -> Option<PathBuf> {
     None
 }
 
-pub fn write_spring_server_file(db: &str, name: &str) -> Result<(), Box<dyn Error>> {
+pub fn write_spring_server_file(name: &str) -> Result<(), Box<dyn Error>> {
     let base_directory = find_base_directory().ok_or_else(|| "Could not find base directory")?;
 
     let index_path = base_directory.join("server.ts");
-    let database = Database::from_str(db).ok_or_else(|| "Invalid database type")?;
 
     let capitalized_name = capitalize_first_letter(name);
 
-    let uses_sequelize = matches!(database, Database::MySQL);
-
     let mut imports = vec![r#"import { DolphFactory } from "@dolphjs/dolph";"#.to_string()];
-    if uses_sequelize {
-        imports.push(r#"import { sequelizeInstance } from "@/shared/configs/db.config";"#.to_string());
-    }
 
     // `name` is empty for the initial `dolph new` scaffold, before any
     // component has been generated.
@@ -64,14 +58,8 @@ pub fn write_spring_server_file(db: &str, name: &str) -> Result<(), Box<dyn Erro
         format!("{capitalized_name}Component")
     };
 
-    let start = if uses_sequelize {
-        "sequelizeInstance.sync().then(() => dolph.start());"
-    } else {
-        "dolph.start();"
-    };
-
     let import_statement = imports.join("\n");
-    let other_file_content = format!("const dolph = new DolphFactory([{components}]);\n{start}");
+    let other_file_content = format!("const dolph = new DolphFactory([{components}]);\n\ndolph.start();");
 
     let file_content = format!("{}\n\n{}\n", import_statement, other_file_content);
 
@@ -253,16 +241,13 @@ pub fn write_dolph_config(
         ""
     };
 
-    // Mongo is the one database choice where `server.ts` never calls an
-    // explicit connect function (see write_spring_server_file) — it relies
-    // entirely on this section for DolphFactory to auto-connect. Without
-    // it, a freshly scaffolded Mongo app never connects to a database at
-    // all. mysql/postgresql/other are wired through db.config.ts /
-    // datasource.ts instead, so they don't need an entry here.
-    let database_section = if database == "mongo" {
-        "database:\n  mongo:\n    url: mongodb://localhost:27017/dolph-app\n    autoCreate: false\n"
-    } else {
-        ""
+    // `dolph.start()` connects whatever is listed here, so this section is all
+    // a project needs to reach its database.
+    let database_section = match database {
+        "mongo" => "database:\n  mongo:\n    url: mongodb://localhost:27017/dolph-app\n".to_string(),
+        "mysql" => typeorm_section("mysql", 3306),
+        "postgresql" => typeorm_section("postgres", 5432),
+        _ => String::new(),
     };
 
     // Express is the default, so it doesn't need a line of its own.
@@ -287,14 +272,32 @@ jsonLimit: 2mb
     Ok(())
 }
 
+/// `sensitive` values come from SQL_USER and SQL_PASSWORD in `.env`. Entities are
+/// matched in `app/` because that's what runs: `dolph build` compiles `src/` into it.
+fn typeorm_section(driver: &str, port: u16) -> String {
+    format!(
+        r#"database:
+  typeorm:
+    options:
+      type: {driver}
+      host: localhost
+      port: {port}
+      username: sensitive
+      password: sensitive
+      database: dolph_app
+      synchronize: false
+      entities:
+        - app/**/*.entity.js
+"#
+    )
+}
+
 /// Database drivers are optional peers of `@dolphjs/dolph`, so a project has
-/// to depend on the one it uses. GraphQL scaffolds talk to SQL through a
-/// TypeORM DataSource, whatever the database.
+/// to depend on the one it uses. SQL always goes through TypeORM.
 fn driver_dependencies(database: &str, api: &str) -> Vec<(&'static str, &'static str)> {
     match (database, api) {
         ("mongo", _) => vec![("mongoose", "^8.24.8")],
-        ("mysql", "graphql") => vec![("typeorm", "^1.1.0"), ("mysql2", "^3.11.0")],
-        ("mysql", _) => vec![("sequelize", "^6.37.8"), ("mysql2", "^3.11.0")],
+        ("mysql", _) => vec![("typeorm", "^1.1.0"), ("mysql2", "^3.11.0")],
         ("postgresql", _) => vec![("typeorm", "^1.1.0"), ("pg", "^8.11.3")],
         (_, "graphql") => vec![("typeorm", "^1.1.0")],
         _ => vec![],

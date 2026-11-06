@@ -1,8 +1,6 @@
 mod component_writer;
 mod config_writers;
 mod controller_writer;
-mod datasource_config_writer;
-mod db_config_writer;
 mod dto_writer;
 mod entity_writer;
 mod graphql_server_writer;
@@ -22,8 +20,6 @@ pub use config_writers::{
 
 pub use component_writer::write_spring_component;
 pub use controller_writer::write_spring_controller;
-pub use datasource_config_writer::write_datasource_config;
-pub use db_config_writer::write_db_config;
 pub use dto_writer::write_spring_dto;
 pub use entity_writer::write_entity;
 pub use graphql_server_writer::write_graphql_server_file;

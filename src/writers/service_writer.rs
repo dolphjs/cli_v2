@@ -22,18 +22,14 @@ pub fn write_spring_service(db: &str, name: &str) -> Result<(), Box<dyn Error>> 
     let database = Database::from_str(db).ok_or_else(|| "Invalid database type")?;
 
     let import_statement = match database.clone() {
-        Database::MySQL => format!(
-            r#"import {{ InjectMySQL, DService }} from "@dolphjs/dolph";
-import {{ ModelStatic, Model }} from "sequelize";
-import {{ {capitalized_name}Model }} from "./{name}.model"; "#
-        ),
         Database::MongoDB => format!(
             r#"import {{ InjectMongo, DService }} from "@dolphjs/dolph";
 import {{ Model }} from "mongoose";
 import {{ {capitalized_name}Model, I{capitalized_name} }} from "./{name}.model"; "#
         ),
-        Database::PostgreSQL => format!(
-            r#"import {{ DService }} from "@dolphjs/dolph";"#
+        Database::MySQL | Database::PostgreSQL => format!(
+            r#"import {{ DService, getDataSource }} from "@dolphjs/dolph";
+import {{ {capitalized_name} }} from "./{name}.entity"; "#
         ),
         Database::None => format!(
             r#"import {{ DService }} from "@dolphjs/dolph";"#
@@ -57,16 +53,13 @@ export class {capitalized_name}Service {{
     private {name}Model!: Model<I{capitalized_name}>;
 }}"#
         ),
-        Database::MySQL => format!(
-            r#"@InjectMySQL("{name}Model", {capitalized_name}Model)
-@DService()
-export class {capitalized_name}Service {{
-    private {name}Model!: ModelStatic<Model<any, any>>;
-}}"#
-        ),
-        Database::PostgreSQL => format!(
+        // A getter, because services are built before the DataSource exists.
+        Database::MySQL | Database::PostgreSQL => format!(
             r#"@DService()
 export class {capitalized_name}Service {{
+    private get {name}Repository() {{
+        return getDataSource().getRepository({capitalized_name});
+    }}
 }}"#
         ),
         Database::None => format!(

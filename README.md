@@ -75,7 +75,7 @@ dolph generate [OPTIONS]
 | `-s` | `--service <name>` | A service (`@DService()`, database-aware — see [Database Support](#database-support)). |
 | `-y` | `--component <name>` | A `@Component({ controllers: [], services: [] })` shell. |
 | `-d` | `--dto <name>` | A `class-validator`-ready DTO stub. |
-| `-m` | `--model <name>` | A Mongoose schema or Sequelize model, depending on your database. |
+| `-m` | `--model <name>` | A Mongoose schema or TypeORM entity, depending on your database. |
 | `-t` | `--test <name>` | A controller spec and a service spec — see [Testing](#testing). |
 | `-k` | `--socket <name>` | A Socket Service **and** its Socket Component — see [WebSockets](#websockets). |
 | `-e` | `--entity <name>` | (GraphQL) A `type-graphql`/`typeorm` entity. |
@@ -161,7 +161,6 @@ my-app/
 ├── src/
 │   ├── server.ts
 │   ├── shared/
-│   │   ├── configs/           # db.config.ts lives here for MySQL projects
 │   │   └── socket/            # socket services/components generated here
 │   └── components/
 │       └── <name>/
@@ -196,12 +195,12 @@ Your `dolph new` database choice changes what `generate --service`/`generate --m
 | Database | Service | Model |
 |---|---|---|
 | `mongo` | `@InjectMongo(...)` + `@DService()`, typed against the generated Mongoose model. | A Mongoose schema (`I<Name>` interface + `<Name>Model`). |
-| `mysql` | `@InjectMySQL(...)` + `@DService()`, typed against a Sequelize model. First `generate --model` also writes `src/shared/configs/db.config.ts` (a real `initMySql(...)` call, called from `server.ts`). | A `sequelizeInstance.define(...)` model. |
-| `postgresql` / `other` | Plain `@DService()`-decorated service — no ORM wiring generated yet. | Not generated for these — bring your own. |
+| `mysql` / `postgresql` | `@DService()` with a `getDataSource().getRepository(...)` getter. | A TypeORM entity, `<name>.entity.ts`. |
+| `other` | Plain `@DService()`-decorated service, with no ORM wiring. | Not generated, so bring your own. |
 
 `@DService()` shows up on every generated service regardless of database, even ones with no dependencies today: TypeScript's `emitDecoratorMetadata` only emits constructor-parameter reflection metadata for a class that has *some* decorator on it, and `@Component` depends on exactly that metadata to resolve a service's own constructor-injected dependencies. Without it, a service that later grows a dependency on another service fails to receive it, silently.
 
-For Mongo specifically: `dolph_config.yaml` gets a `database.mongo` block pointed at `mongodb://localhost:27017/dolph-app` by default, because `server.ts` never calls an explicit connect function for a Mongo project — `DolphFactory` auto-connects from that config section alone. Point it at a real connection string before you rely on it outside local dev.
+`dolph_config.yaml` gets a `database` block for Mongo, MySQL and PostgreSQL, and `dolph.start()` connects it. The app won't start until that database is reachable, so point it at your own server, and set `SQL_USER` and `SQL_PASSWORD` in `.env` for MySQL and PostgreSQL. Add `required: false` to start without it.
 
 ## Testing
 
@@ -219,7 +218,7 @@ dolph generate --socket chat
 Writes **two** files to `src/shared/socket/`: `chat.socket.service.ts` (extends `DolphSocketServiceHandler`, a starter `connection` handler) and `chat.socket.component.ts` (`@Socket({ services: [], socketServices: [ChatSocketService] })`). Neither does anything until you wire the component into `server.ts` yourself — the CLI prints the snippet you need after generating:
 
 ```typescript
-new DolphFactory([...], { socketService: SocketService, component: new ChatSocketComponent() })
+new DolphFactory([...], { sockets: { component: new ChatSocketComponent() } })
 ```
 
 ## GraphQL Mode
@@ -227,8 +226,7 @@ new DolphFactory([...], { socketService: SocketService, component: new ChatSocke
 Choosing `graphql` at `dolph new` always uses spring routing and TypeScript, and additionally scaffolds:
 
 - `src/setup.ts` — `buildSchema()` (empty `resolvers: []` to start) and a `context` function.
-- `src/shared/configs/data_source.ts` — a TypeORM `DataSource`, **unless** you chose `mongo` as your database (TypeORM isn't in play there — Mongoose is, same as REST mode).
-- `server.ts` wired to `AppDataSource.initialize().then(() => dolph.start())`, passing `schema()` (a `Promise<GraphQLSchema>`) straight into `DolphFactory`'s GraphQL adapter, which awaits it internally.
+- `server.ts`, passing `schema()` (a `Promise<GraphQLSchema>`) to `DolphFactory`'s `graphql` option, which awaits it internally. Databases connect from `dolph_config.yaml`, same as REST mode.
 
 `dolph generate --all <name>` in GraphQL mode produces an entity, a resolver, and an input instead of a REST controller/DTO/model.
 

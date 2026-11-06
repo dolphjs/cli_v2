@@ -8,9 +8,8 @@ use super::config_writers::find_base_directory;
 /// `@Component` plays for controllers/services — without one, a generated
 /// socket service is never actually wired into the app. `dolph generate
 /// --socket <name>` writes both files; this one still needs to be passed
-/// into `DolphFactory`'s second constructor argument by hand (`{ socketService:
-/// SocketService, component: new XSocketComponent() }`), since that wiring
-/// lives in the user's own server.ts.
+/// into `DolphFactory`'s options by hand (`{ sockets: { component: new
+/// XSocketComponent() } }`), since that wiring lives in the user's own server.ts.
 pub fn write_socket_component(name: &str) -> Result<(), Box<dyn Error>> {
     let base_directory = find_base_directory().ok_or_else(|| "Could not find base directory")?;
 

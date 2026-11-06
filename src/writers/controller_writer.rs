@@ -25,7 +25,7 @@ pub fn write_spring_controller(name: &str) -> Result<(), Box<dyn Error>> {
 
     // Auto-return style: whatever the handler returns is sent as the
     // response body automatically (wrapped in Dolph's standard success
-    // envelope) — no `res`/`SuccessResponse` needed. See Controllers in the
+    // envelope). See Controllers in the
     // docs for the DRes()-based alternative if you need to write to the
     // response directly.
     let other_body = format!(

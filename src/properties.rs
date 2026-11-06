@@ -5,7 +5,7 @@ use clap::{arg, ArgMatches, Command};
 use serde::{Deserialize, Serialize};
 
 use crate::writers::{
-    write_db_config, write_entity, write_graphql_service, write_input, write_resolver, write_socket_component, write_socket_service, write_spring_component, write_spring_controller, write_spring_dto, write_spring_model, write_spring_server_file, write_spring_service, write_spring_test
+    write_entity, write_graphql_service, write_input, write_resolver, write_socket_component, write_socket_service, write_spring_component, write_spring_controller, write_spring_dto, write_spring_model, write_spring_server_file, write_spring_service, write_spring_test
 };
 
 pub type Result<T> = std::result::Result<T, Box<dyn Error>>;
@@ -65,9 +65,6 @@ impl Generator {
     }
 
     pub async fn generate_model(&self, name: &str) -> Result<()> {
-        if self.config.database == "mysql" {
-            self.generate_db_config(name).await?;
-        }
         write_spring_model(&self.config.database, name)?;
         println!("Generated model: {}", name);
         Ok(())
@@ -89,7 +86,7 @@ impl Generator {
         write_socket_component(name)?;
         println!("Generated socket: {} (service + component)", name);
         println!(
-            "  Wire it into server.ts: new DolphFactory([...], {{ socketService: SocketService, component: new {}SocketComponent(), auth: socketJwtAuth(secret) }})",
+            "  Wire it into server.ts: new DolphFactory([...], {{ sockets: {{ component: new {}SocketComponent(), auth: socketJwtAuth(secret) }} }})",
             crate::utils::capitalize_first_letter(name)
         );
         Ok(())
@@ -125,14 +122,8 @@ impl Generator {
         Ok(())
     }
 
-    pub async fn generate_db_config(&self, name: &str) -> Result<()> {
-        write_db_config(name)?;
-        println!("Generated db config: {}", name);
-        Ok(())
-    }
-
     pub async fn generate_server(&self, name: &str) -> Result<()> {
-        write_spring_server_file(&self.config.database, name)?;
+        write_spring_server_file(name)?;
         println!("Generated server: {}", name);
         Ok(())
     }

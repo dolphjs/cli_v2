@@ -15,35 +15,29 @@ pub fn write_spring_model(db: &str, name: &str) -> Result<(), Box<dyn Error>> {
 
     ensure_directory_exists(&model_path)?;
 
-    let index_path = model_path.join(format!("{}.model.ts", name));
-
     let capitalized_name = capitalize_first_letter(name);
 
     let database = Database::from_str(db).ok_or_else(|| "Invalid database type")?;
 
-    let import_statement = match database.clone() {
-        Database::MySQL => format!(
-            r#"import {{ sequelizeInstance }} from "@/shared/configs/db.config";
-import {{ DataTypes }} from "sequelize";"#
+    // SQL models are TypeORM entities. The `.entity` suffix is what the
+    // `entities` glob in dolph_config.yaml looks for.
+    let (file_name, import_statement, other_file_content) = match database {
+        Database::MySQL | Database::PostgreSQL => (
+            format!("{}.entity.ts", name),
+            r#"import { Entity, PrimaryGeneratedColumn } from "typeorm";"#.to_string(),
+            format!(
+                r#"@Entity()
+export class {capitalized_name} {{
+    @PrimaryGeneratedColumn("uuid")
+    id: string;
+}}"#
+            ),
         ),
-        Database::MongoDB => format!(r#"import {{ Schema, Document, model }} from "mongoose";"#),
-        Database::PostgreSQL => r#""#.to_string(),
-        Database::None => r#""#.to_string(),
-    };
-
-    let other_file_content = match database.clone() {
-        Database::MySQL => format!(
-            r#"export const {capitalized_name}Model = sequelizeInstance.define("{name}", {{
-  id: {{
-    type: DataTypes.INTEGER,
-    allowNull: false,
-    primaryKey: true,
-    autoIncrement: true,
-    }},
-}});"#
-        ),
-        Database::MongoDB => format!(
-            r#"export interface I{capitalized_name} extends Document {{}};
+        Database::MongoDB => (
+            format!("{}.model.ts", name),
+            r#"import { Schema, Document, model } from "mongoose";"#.to_string(),
+            format!(
+                r#"export interface I{capitalized_name} extends Document {{}};
  
  const {capitalized_name}Schema = new Schema(
     {{
@@ -52,10 +46,12 @@ import {{ DataTypes }} from "sequelize";"#
 
 export const {capitalized_name}Model = model<I{capitalized_name}>("{name}", {capitalized_name}Schema);
  "#
+            ),
         ),
-        Database::PostgreSQL => r#""#.to_string(),
-        Database::None => r#""#.to_string(),
+        Database::None => (format!("{}.model.ts", name), String::new(), String::new()),
     };
+
+    let index_path = model_path.join(file_name);
 
     let file_content = format!("{}\n\n{}\n", import_statement, other_file_content);
 
