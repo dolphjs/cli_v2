@@ -1,6 +1,6 @@
-use std::{error::Error, fs};
+use std::error::Error;
 
-use crate::utils::{capitalize_first_letter, ensure_directory_exists};
+use crate::utils::{capitalize_first_letter, ensure_directory_exists, write_generated};
 
 use super::config_writers::find_base_directory;
 
@@ -55,7 +55,7 @@ describe("{capitalized_name}Controller", () => {{
 "#
     );
 
-    match fs::write(&index_path, file_content) {
+    match write_generated(&index_path, file_content) {
         Ok(_) => Ok(()),
         Err(e) => {
             eprintln!("{}", format!("Error writing controller spec file: {}", e));
@@ -86,7 +86,7 @@ describe("{capitalized_name}Service", () => {{
 "#
     );
 
-    match fs::write(&index_path, file_content) {
+    match write_generated(&index_path, file_content) {
         Ok(_) => Ok(()),
         Err(e) => {
             eprintln!("{}", format!("Error writing service spec file: {}", e));

@@ -73,7 +73,7 @@ dolph generate [OPTIONS]
 | `-a` | `--all <name>` | Everything below appropriate to your project's API style — see [Generating a Full Feature](#generating-a-full-feature). |
 | `-c` | `--controller <name>` | A controller (`@Route`, auto-return `greet` handler). |
 | `-s` | `--service <name>` | A service (`@DService()`, database-aware — see [Database Support](#database-support)). |
-| `-y` | `--component <name>` | A `@Component({ controllers: [], services: [] })` shell. |
+| `-y` | `--component <name>` | A `@Component` listing the controller and service in its folder, added to `server.ts`. |
 | `-d` | `--dto <name>` | A `class-validator`-ready DTO stub. |
 | `-m` | `--model <name>` | A Mongoose schema or TypeORM entity, depending on your database. |
 | `-t` | `--test <name>` | A controller spec and a service spec — see [Testing](#testing). |
@@ -82,12 +82,15 @@ dolph generate [OPTIONS]
 | `-v` | `--resolver <name>` | (GraphQL) A `@Resolver()` stub. |
 | `-i` | `--input <name>` | (GraphQL) An `@InputType()` stub. |
 | `-r` | `--route <name>` | (Express routing) Currently a no-op — express-routing projects don't get generator support beyond the initial scaffold yet. |
+| `-f` | `--force` | Replaces files that already exist, instead of skipping them. |
 
 Flags can be combined in one invocation:
 
 ```bash
 dolph generate --controller users --service users
 ```
+
+Generated files are yours once they exist, so `dolph generate` skips any that are already there. That makes `--all` safe to rerun: it fills in what's missing and leaves your code alone. Add `--force` to replace them, which discards your changes to those files.
 
 #### Generating a Full Feature
 

@@ -1,6 +1,6 @@
 use std::{error::Error, fs, path::Path};
 
-use crate::utils::{capitalize_first_letter, ensure_directory_exists};
+use crate::utils::{capitalize_first_letter, ensure_directory_exists, write_generated};
 
 use super::config_writers::find_base_directory;
 
@@ -151,7 +151,7 @@ pub fn write_spring_component(name: &str) -> Result<(), Box<dyn Error>> {
         specific_component_path.join(format!("{}.service.ts", name)).exists(),
     );
 
-    if let Err(e) = fs::write(&index_path, content) {
+    if let Err(e) = write_generated(&index_path, content) {
         eprintln!("{}", format!("Error writing component file: {}", e));
         return Err(Box::new(e));
     }

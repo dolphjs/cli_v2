@@ -1,6 +1,6 @@
-use std::{error::Error, fs};
+use std::error::Error;
 
-use crate::utils::{capitalize_first_letter, ensure_directory_exists};
+use crate::utils::{capitalize_first_letter, ensure_directory_exists, write_generated};
 
 use super::config_writers::find_base_directory;
 
@@ -52,7 +52,7 @@ export class {capitalized_name}Resolver{{
 
     let file_content = format!("{}\n\n{}\n", import_statement, other_file_content);
 
-    match fs::write(&index_path, file_content) {
+    match write_generated(&index_path, file_content) {
         Ok(_) => Ok(()),
         Err(e) => {
             eprintln!("{}", format!("Error writing resolver file: {}", e));
