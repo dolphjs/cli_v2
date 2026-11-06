@@ -25,7 +25,7 @@ pub fn write_spring_service(db: &str, name: &str) -> Result<(), Box<dyn Error>> 
         Database::MySQL => format!(
             r#"import {{ InjectMySQL, DService }} from "@dolphjs/dolph";
 import {{ ModelStatic, Model }} from "sequelize";
-import {{ {name}Model }} from "./{name}.model"; "#
+import {{ {capitalized_name}Model }} from "./{name}.model"; "#
         ),
         Database::MongoDB => format!(
             r#"import {{ InjectMongo, DService }} from "@dolphjs/dolph";
@@ -58,7 +58,7 @@ export class {capitalized_name}Service {{
 }}"#
         ),
         Database::MySQL => format!(
-            r#"@InjectMySQL("{name}Model", {name}Model)
+            r#"@InjectMySQL("{name}Model", {capitalized_name}Model)
 @DService()
 export class {capitalized_name}Service {{
     private {name}Model!: ModelStatic<Model<any, any>>;
@@ -108,7 +108,7 @@ pub fn write_graphql_service(name: &str) -> Result<(), Box<dyn Error>> {
 
     let import_statement = format!(
         r#"import {{ DService }} from "@dolphjs/dolph";
-import {{ Create{capitalized_name}Input }} from "../inputs/{name}.inputs";
+import {{ Create{capitalized_name}Input }} from "../inputs/{name}.input";
 "#
     );
 

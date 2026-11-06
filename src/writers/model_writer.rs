@@ -33,7 +33,7 @@ import {{ DataTypes }} from "sequelize";"#
 
     let other_file_content = match database.clone() {
         Database::MySQL => format!(
-            r#"export const {capitalized_name} = sequelizeInstance.define("{name}", {{
+            r#"export const {capitalized_name}Model = sequelizeInstance.define("{name}", {{
   id: {{
     type: DataTypes.INTEGER,
     allowNull: false,

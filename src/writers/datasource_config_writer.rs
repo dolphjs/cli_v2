@@ -27,7 +27,8 @@ pub fn write_datasource_config(mut database: &str) -> Result<(), Box<dyn Error>>
         &mut "mysql" => db = "mysql",
         &mut "mongo" => db = "mongo",
         &mut "postgresql" => db = "postgres",
-        &mut "other" => db = "",
+        // Needs a real TypeORM driver name to compile. Change it to match your database.
+        &mut "other" => db = "postgres",
         &mut &_ => (),
     }
 

@@ -153,7 +153,12 @@ impl Generator {
                 _ => println!("Unknown routing type"),
             }
         } else if self.config.api.to_string() == String::from("graphql") {
-            self.generate_entity(name).await?;
+            // Entities are TypeORM, which a Mongo project doesn't use.
+            if self.config.database == "mongo" {
+                self.generate_model(name).await?;
+            } else {
+                self.generate_entity(name).await?;
+            }
             self.generate_resolver(name).await?;
             self.generate_input(name).await?;
         }

@@ -17,14 +17,15 @@ pub fn write_db_config(name: &str) -> Result<(), Box<dyn Error>> {
 
     let index_path = configs_path.join("db.config.ts");
 
-    let import_statement = r#"import { initMySql } from "@dolphjs/dolph";"#.to_string();
+    let import_statement = r#"import { initSql } from "@dolphjs/dolph";"#.to_string();
 
-    let file_content = r#"export const sequelizeInstance = initMySql(
-  "dolph",
-  "root",
-  "password",
-  "localhost"
-);"#
+    let file_content = r#"export const sequelizeInstance = initSql({
+  dialect: "mysql",
+  database: process.env.SQL_DATABASE ?? "dolph",
+  user: process.env.SQL_USER,
+  pass: process.env.SQL_PASSWORD,
+  host: process.env.SQL_HOST ?? "localhost",
+});"#
     .to_string();
 
     let file_content = format!("{}\n\n{}\n", import_statement, file_content);

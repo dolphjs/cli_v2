@@ -37,13 +37,15 @@ export class {capitalized_name}Resolver{{
         // You should instantiate the service here
     }}
 
-    @Mutation()
-    async create{capitalized_name}() {{
-        
+    @Mutation(() => String)
+    async create{capitalized_name}(): Promise<string> {{
+        return "";
     }}
 
-    @Query()
-    async fetch{capitalized_name}() {{}}
+    @Query(() => String)
+    async fetch{capitalized_name}(): Promise<string> {{
+        return "";
+    }}
 }}
 "#
     );
