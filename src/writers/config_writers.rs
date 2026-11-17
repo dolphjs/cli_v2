@@ -336,7 +336,7 @@ pub fn write_package_json(
             "clean": "rm -r app && rm -r logs"
           },
           "dependencies": {
-            "@dolphjs/dolph": "^3.0.0"
+            "@dolphjs/dolph": "^3.1.0"
           },
           "devDependencies": {
             "@dolphjs/testing": "^2.0.0",
@@ -376,7 +376,7 @@ pub fn write_package_json(
             "clean": "rm -r app && rm -r logs"
           },
           "dependencies": {
-            "@dolphjs/dolph": "^3.0.0",
+            "@dolphjs/dolph": "^3.1.0",
             "@dolphjs/graphql": "^0.2.0",
             "graphql-scalars": "^1.23.0",
             "type-graphql": "^2.0.0-rc.2"
@@ -416,7 +416,7 @@ pub fn write_package_json(
             "start": "dolph start"
           },
           "dependencies": {
-            "@dolphjs/dolph": "^3.0.0"
+            "@dolphjs/dolph": "^3.1.0"
           }
         })
     };

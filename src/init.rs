@@ -85,7 +85,9 @@ pub fn init_dolph_cli(app_name: &str) -> Result<(), Box<dyn Error>> {
 
         // Express routing is built on Express Routers, which Fastify can't run.
         let adapter = if routing == "spring" {
-            let adapter_options = ["express", "fastify"];
+            // `dolph` is DolphJS's own engine — same Express middleware
+            // compatibility as `express`, without Express underneath.
+            let adapter_options = ["express", "fastify", "dolph"];
             adapter_options[Select::with_theme(&theme)
                 .with_prompt("Which server should dolph run on?")
                 .default(0)
